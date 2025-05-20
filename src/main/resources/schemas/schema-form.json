@@ -1,0 +1,33 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "resourceName": {
+            "title": "Resource Name",
+            "description": "The resource name loading the Text Classification model",
+            "type": "string"
+        },
+        "promptLocation": {
+            "title": "Prompt Location",
+            "description": "Prompt Location",
+            "type": "string"
+        },
+        "contentChecks": {
+            "title": "Content Checks",
+            "description": "Comma-separated list of model labels (e.g., TOXIC,OBSCENE)",
+            "type": "string"
+        },
+        "sensitivityThreshold": {
+            "title": "Sensitivity threshold",
+            "type": "number",
+            "default": 0.5
+        },
+        "requestPolicy": {
+            "title": "Request Policy",
+            "description": "Request Policy",
+            "type": "string",
+            "default": "LOG_REQUEST",
+            "enum": ["BLOCK_REQUEST", "LOG_REQUEST"]
+        }
+    }
+}
