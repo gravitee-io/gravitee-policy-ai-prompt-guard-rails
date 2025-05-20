@@ -1,0 +1,84 @@
+{
+    "id": "v4-ai-prompt-guard-rails-block-request",
+    "name": "v4-ai-prompt-guard-rails-block-request",
+    "apiVersion": "1.0",
+    "definitionVersion": "4.0.0",
+    "type": "proxy",
+    "analytics": {
+        "enabled": false
+    },
+    "listeners": [
+        {
+            "type": "http",
+            "paths": [
+                {
+                    "path": "/block-request"
+                }
+            ],
+            "entrypoints": [
+                {
+                    "type": "http-proxy"
+                }
+            ]
+        }
+    ],
+    "endpointGroups": [
+        {
+            "name": "default",
+            "type": "http-proxy",
+            "endpoints": [
+                {
+                    "name": "default",
+                    "type": "http-proxy",
+                    "weight": 1,
+                    "inheritConfiguration": false,
+                    "configuration": {
+                        "target": "http://localhost:8080/endpoint"
+                    }
+                }
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "name": "ai-model-text-classification-resource",
+            "type": "ai-model-text-classification",
+            "configuration": {
+                "model": {
+                    "type": "MINILMV2_TOXIC_JIGSAW_MODEL"
+                }
+            },
+            "enabled": true
+        }
+    ],
+    "flows": [
+        {
+            "name": "flow-1",
+            "enabled": true,
+            "selectors": [
+                {
+                    "type": "http",
+                    "path": "/",
+                    "pathOperator": "STARTS_WITH"
+                }
+            ],
+            "request": [
+                {
+                    "name": "AI Prompt Guard Rails",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "ai-prompt-guard-rails",
+                    "configuration": {
+                        "resourceName": "ai-model-text-classification-resource",
+                        "promptLocation": "{#request.jsonContent.prompt}",
+                        "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
+                        "requestPolicy": "BLOCK_REQUEST"
+                    }
+                }
+            ],
+            "response": [],
+            "subscribe": [],
+            "publish": []
+        }
+    ]
+}
