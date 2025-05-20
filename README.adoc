@@ -1,0 +1,77 @@
+= AI - Prompt Guard Rails
+== Phases
+
+[cols="4*", options="header"]
+|===
+^|onRequest
+^|onResponse
+^|onMessageRequest
+^|onMessageResponse
+
+^.^| X
+^.^|
+^.^|
+^.^|
+|===
+
+
+== Description
+
+This policy uses an AI-powered text classification model to evaluate user prompts for potentially inappropriate or malicious content. It is capable of detecting a wide range of violations, such as profanity, sexually explicit language, harmful intent, and jailbreak prompt injections — adversarial inputs crafted to bypass AI safety mechanisms.
+
+Depending on configuration, when a prompt is flagged:
+
+* **Blocked and flagged** – the request is denied at the gateway
+* **Allowed but flagged** – the request proceeds but is logged for monitoring
+
+NOTE: This policy is designed to work with at least APIM 4.8.0.
+
+=== Compatibility with APIM
+|===
+| Plugin version | APIM version
+| 1.x | 4.8 or higher
+|===
+
+=== Configuration
+[cols="3*", options=header]
+|===
+^| Name
+^| Description
+^| Default/required
+
+.^| Prompt Location
+.^| Specifies where to extract the prompt from in the message using Expression Language (EL) syntax.
+^.^| Required
+
+.^| Content Checks
+.^| Defines which classifier labels/categories (e.g., profanity, sexual content) are used to evaluate the prompt.
+^.^| Required
+
+.^| Sensitivity Threshold
+.^| Controls how strictly the prompt is evaluated. Lower values flag more content (higher sensitivity), while higher values are more permissive.
+^.^| Defaults to 0.5 if not provided.
+
+.^| Request Policy
+.^| Determines whether to block the request or allow it and log the flagged content.
+^.^| Required
+
+.^| AI Model Resource Name
+.^| Specifies the AI model text classification API resource used by the policy to evaluate prompt content.
+^.^| Required
+|===
+
+=== AI Model Resource
+
+The policy requires an **AI Model Text Classification Resource** to be defined at the API level. This resource serves as the classification engine for evaluating prompt content during policy execution.
+
+Details on creating and managing such resources can be found at: https://documentation.gravitee.io/apim/policies/resources
+
+NOTE: After the resource is created, the policy must be configured with the corresponding name using the **AI Model Resource Name** property.
+
+=== Content Checks
+
+This property specifies the classification labels that will be applied to evaluate prompts. Labels should be chosen in alignment with the selected model's capabilities and the intended filtering goals—for instance, filtering for profanity while omitting toxicity checks.
+
+Supported labels are typically documented in the model’s card or configuration file.
+
+NOTE: Labels must be provided as a comma-separated list.
