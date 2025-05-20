@@ -1,0 +1,41 @@
+genExamples: []
+rawExamples:
+    - title: Only log the request when inappropriate prompt detected
+      templateRef: v4-api-proxy-with-resource
+      language: json
+      properties:
+          phase: request
+          resource: |
+              {
+                "name": "ai-model-text-classification-resource",
+                "type": "ai-model-text-classification",
+                "configuration": "{\"model\":{\"type\":\"MINILMV2_TOXIC_JIGSAW_MODEL\"}}",
+                "enabled": true
+              }
+      file: .docgen/examples/log-request-only.json
+    - title: Block request when inappropriate prompt detected
+      templateRef: v4-api-proxy-with-resource
+      language: json
+      properties:
+          phase: request
+          resource: |
+              {
+                "name": "ai-model-text-classification-resource",
+                "type": "ai-model-text-classification",
+                "configuration": "{\"model\":{\"type\":\"MINILMV2_TOXIC_JIGSAW_MODEL\"}}",
+                "enabled": true
+              }
+      file: .docgen/examples/block-request.json
+    - title: Provide a custom sensitivity threshold for inappropriate prompts
+      templateRef: v4-api-proxy-with-resource
+      language: json
+      properties:
+          phase: request
+          resource: |
+              {
+                "name": "ai-model-text-classification-resource",
+                "type": "ai-model-text-classification",
+                "configuration": "{\"model\":{\"type\":\"MINILMV2_TOXIC_JIGSAW_MODEL\"}}",
+                "enabled": true
+              }
+      file: .docgen/examples/provide-custom-sensitivity-threshold.json
