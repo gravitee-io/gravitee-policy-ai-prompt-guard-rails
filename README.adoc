@@ -75,3 +75,12 @@ This property specifies the classification labels that will be applied to evalua
 Supported labels are typically documented in the model’s card or configuration file.
 
 NOTE: Labels must be provided as a comma-separated list.
+
+== Notice
+
+This plugin exposes models based on meta LLama4:
+
+* link:https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-22M[gravitee-io/Llama-Prompt-Guard-2-22M]
+* link:https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-86M[gravitee-io/Llama-Prompt-Guard-2-86M]
+
+``Llama 4 is licensed under the Llama 4 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.``
