@@ -49,6 +49,14 @@
         <fileSet>
             <directory>${basedir}</directory>
             <includes>
+                <include>NOTICE.txt</include>
+            </includes>
+            <outputDirectory></outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>${basedir}</directory>
+            <includes>
                 <include>${icon}</include>
             </includes>
         </fileSet>
