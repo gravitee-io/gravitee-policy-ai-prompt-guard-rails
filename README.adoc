@@ -78,10 +78,9 @@ NOTE: Labels must be provided as a comma-separated list.
 
 == Notice
 
-This policy may use models based on meta LLama 4:
-- [gravitee-io/Llama-Prompt-Guard-2-22M](https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-22M)
-- [gravitee-io/Llama-Prompt-Guard-2-86M](https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-86M)
+This plugin exposes models based on meta LLama4:
 
-``
-Llama 4 is licensed under the Llama 4 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.
-``
+* link:https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-22M[gravitee-io/Llama-Prompt-Guard-2-22M]
+* link:https://huggingface.co/gravitee-io/Llama-Prompt-Guard-2-86M[gravitee-io/Llama-Prompt-Guard-2-86M]
+
+``Llama 4 is licensed under the Llama 4 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.``
