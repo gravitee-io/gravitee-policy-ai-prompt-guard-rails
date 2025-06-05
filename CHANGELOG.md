@@ -1,3 +1,10 @@
+# [1.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0-alpha.1...1.0.0-alpha.2) (2025-06-05)
+
+
+### Bug Fixes
+
+* README dead links ([#7](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/issues/7)) ([2ab84e5](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/2ab84e5681cbaa6315fc5c84263dc97ee7fb8420))
+
 # 1.0.0-alpha.1 (2025-06-02)
 
 
