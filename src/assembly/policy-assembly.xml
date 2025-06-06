@@ -41,9 +41,9 @@
         <fileSet>
             <directory>${basedir}</directory>
             <includes>
-                <include>README.adoc</include>
+                <include>docs/</include>
             </includes>
-            <outputDirectory>docs</outputDirectory>
+            <outputDirectory>./</outputDirectory>
         </fileSet>
 
         <fileSet>
@@ -51,7 +51,7 @@
             <includes>
                 <include>NOTICE.txt</include>
             </includes>
-            <outputDirectory></outputDirectory>
+            <outputDirectory>./</outputDirectory>
         </fileSet>
 
         <fileSet>
