@@ -39,10 +39,10 @@
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-common.version>4.6.0</gravitee-common.version>
         <gravitee-gateway-api.version>3.8.1</gravitee-gateway-api.version>
-        <gravitee-resource-ai-model-api.version>1.0.0</gravitee-resource-ai-model-api.version>
+        <gravitee-resource-ai-model-api.version>2.0.1</gravitee-resource-ai-model-api.version>
 
         <!-- Tests -->
-        <gravitee-resource-ai-model-text-classification.version>1.0.0-alpha.1</gravitee-resource-ai-model-text-classification.version>
+        <gravitee-resource-ai-model-text-classification.version>1.0.0-alpha.5</gravitee-resource-ai-model-text-classification.version>
 
         <!-- Maven plugins -->
         <maven-plugin-assembly.version>3.7.1</maven-plugin-assembly.version>
@@ -108,10 +108,18 @@
             <version>${gravitee-apim.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
-        <groupId>io.gravitee.resource</groupId>
-        <artifactId>gravitee-resource-ai-model-text-classification</artifactId>
-        <version>${gravitee-resource-ai-model-text-classification.version}</version>
+            <groupId>io.gravitee.resource</groupId>
+            <artifactId>gravitee-resource-ai-model-text-classification</artifactId>
+            <version>${gravitee-resource-ai-model-text-classification.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.inference.service</groupId>
+            <artifactId>gravitee-inference-service</artifactId>
+            <version>${gravitee-inference-service.version}</version>
             <scope>test</scope>
         </dependency>
 
