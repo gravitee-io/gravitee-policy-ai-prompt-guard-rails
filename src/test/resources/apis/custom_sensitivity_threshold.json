@@ -40,8 +40,12 @@
     "resources": [
         {
             "name": "ai-model-text-classification-resource",
-            "type": "fake-ai-model-text-classification",
-            "configuration": {},
+            "type": "ai-model-text-classification",
+            "configuration": {
+                "model": {
+                    "type": "MINILMV2_TOXIC_JIGSAW_MODEL"
+                }
+            },
             "enabled": true
         }
     ],

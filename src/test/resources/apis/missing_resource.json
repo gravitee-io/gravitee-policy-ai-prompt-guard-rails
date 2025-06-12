@@ -40,7 +40,7 @@
     "resources": [
         {
             "name": "not-existing-resource",
-            "type": "fake-ai-model-text-classification",
+            "type": "ai-model-text-classification",
             "configuration": {},
             "enabled": true
         }

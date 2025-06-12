@@ -35,7 +35,11 @@
     <properties>
         <!-- Gravitee dependencies version -->
         <gravitee-apim.version>4.8.1</gravitee-apim.version>
-        <gravitee-resource-ai-model-api.version>1.0.0</gravitee-resource-ai-model-api.version>
+        <gravitee-inference-service.version>1.2.0</gravitee-inference-service.version>
+        <gravitee-resource-ai-model-api.version>2.1.0</gravitee-resource-ai-model-api.version>
+
+        <!-- Tests -->
+        <gravitee-resource-ai-model-text-classification.version>2.0.0-bump-ai-model-resource-api-SNAPSHOT</gravitee-resource-ai-model-text-classification.version>
 
         <!-- Maven plugins -->
         <maven-plugin-assembly.version>3.7.1</maven-plugin-assembly.version>
@@ -104,6 +108,18 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gravitee.resource</groupId>
+            <artifactId>gravitee-resource-ai-model-text-classification</artifactId>
+            <version>${gravitee-resource-ai-model-text-classification.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gravitee.inference.service</groupId>
+            <artifactId>gravitee-inference-service</artifactId>
+            <version>${gravitee-inference-service.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
