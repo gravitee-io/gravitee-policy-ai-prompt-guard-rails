@@ -17,7 +17,8 @@ package io.gravitee.policy.ai.prompt.guard.rails.model;
 
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
-import io.gravitee.resource.ai_model.api.AiTextClassificationModelResource;
+import io.gravitee.resource.ai_model.api.AiTextModelResource;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.gravitee.resource.api.ResourceManager;
 
 public class AiModelResourceProvider {
@@ -28,7 +29,7 @@ public class AiModelResourceProvider {
         this.configuration = configuration;
     }
 
-    public AiTextClassificationModelResource<?> get(HttpPlainExecutionContext ctx) {
-        return ctx.getComponent(ResourceManager.class).getResource(configuration.resourceName(), AiTextClassificationModelResource.class);
+    public AiTextModelResource<?, ?, ClassifierResults> get(HttpPlainExecutionContext ctx) {
+        return ctx.getComponent(ResourceManager.class).getResource(configuration.resourceName(), AiTextModelResource.class);
     }
 }
