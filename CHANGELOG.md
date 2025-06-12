@@ -1,3 +1,10 @@
+# [1.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0-alpha.2...1.0.0-alpha.3) (2025-06-12)
+
+
+### Bug Fixes
+
+* use docgen tool to generate the documentation ([46c01f3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/46c01f3ef19f23465e19f14189ac7454b712f159))
+
 # [1.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0-alpha.1...1.0.0-alpha.2) (2025-06-05)
 
 
