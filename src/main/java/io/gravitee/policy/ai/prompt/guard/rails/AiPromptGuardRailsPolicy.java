@@ -22,9 +22,8 @@ import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRails
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.policy.api.annotations.RequireResource;
-import io.gravitee.reporter.api.v4.metric.Metrics;
-import io.gravitee.resource.ai_model.api.ClassifierResults;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
 import java.util.Set;
