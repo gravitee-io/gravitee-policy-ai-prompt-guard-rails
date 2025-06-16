@@ -1,3 +1,10 @@
+# [1.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0-alpha.3...1.0.0-alpha.4) (2025-06-16)
+
+
+### Bug Fixes
+
+* bump ai-resource dependencies ([e8e36f5](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/e8e36f52cc7b6e5b7d6585daf0478453ea08b290))
+
 # [1.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0-alpha.2...1.0.0-alpha.3) (2025-06-12)
 
 
