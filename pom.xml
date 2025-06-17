@@ -156,29 +156,31 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>${license-maven-plugin.version}</version>
                 <configuration>
-                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
                     <properties>
                         <owner>The Gravitee team</owner>
                         <email>http://gravitee.io</email>
                     </properties>
-                    <excludes>
-                        <exclude>LICENSE.txt</exclude>
-                        <exclude>**/README</exclude>
-                        <exclude>src/main/packaging/**</exclude>
-                        <exclude>src/test/resources/**</exclude>
-                        <exclude>src/main/resources/**</exclude>
-                        <exclude>src/main/webapp/**</exclude>
-                        <exclude>node_modules/**</exclude>
-                        <exclude>dist/**</exclude>
-                        <exclude>.tmp/**</exclude>
-                        <exclude>.*</exclude>
-                        <exclude>.*/**</exclude>
-                        <exclude>**/*.adoc</exclude>
-                        <exclude>**/*.adoc</exclude>
-                        <exclude>NOTICE.txt</exclude>
-                    </excludes>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+                            <excludes>
+                                <exclude>NOTICE.txt</exclude>
+                                <exclude>LICENSE.txt</exclude>
+                                <exclude>**/README</exclude>
+                                <exclude>src/main/packaging/**</exclude>
+                                <exclude>src/test/resources/**</exclude>
+                                <exclude>src/main/resources/**</exclude>
+                                <exclude>src/main/webapp/**</exclude>
+                                <exclude>node_modules/**</exclude>
+                                <exclude>dist/**</exclude>
+                                <exclude>.tmp/**</exclude>
+                                <exclude>.*</exclude>
+                                <exclude>.*/**</exclude>
+                                <exclude>**/*.adoc</exclude>
+                            </excludes>
+                        </licenseSet>
+                    </licenseSets>
                     <skip>${skip.validation}</skip>
                 </configuration>
             </plugin>
