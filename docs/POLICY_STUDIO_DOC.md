@@ -21,7 +21,9 @@ The policy requires an **AI Model Text Classification Resource** to be defined a
 
 For more information about creating and managing resources, go to [Resources](https://documentation.gravitee.io/apim/policies/resources)
 
-NOTE: After the resource is created, the policy must be configured with the corresponding name using the **AI Model Resource Name** property.
+After the resource is created, the policy must be configured with the corresponding name using the **AI Model Resource Name** property.
+
+>**_NOTE_**: The policy will load the model while handling the first request made to the API. Therefore, this first call will take longer than usual, as it includes the model loading time. Subsequent requests will be processed faster.
 
 
 ## Notice
