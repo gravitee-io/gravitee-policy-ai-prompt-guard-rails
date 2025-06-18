@@ -67,6 +67,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
         return promptContent.flatMapCompletable(prompt ->
             aiModelResource
                 .invokeModel(new PromptInput(prompt))
+                .doOnError(throwable -> log.error("Fail to analyze prompt", throwable))
                 .flatMapCompletable(classifierResults -> {
                     var detectedContentTypes = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
                     if (configuration.parseContentChecks().stream().anyMatch(detectedContentTypes::contains)) {
@@ -80,7 +81,6 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                     }
                     return Completable.complete();
                 })
-                .doOnError(throwable -> log.error("Fail to analyze prompt", throwable))
         );
     }
 
