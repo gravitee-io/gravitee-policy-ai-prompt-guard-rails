@@ -15,13 +15,17 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
-import io.gravitee.resource.ai_model.api.AiTextClassificationModelResource;
-import io.gravitee.resource.ai_model.api.ClassifierResults;
+import io.gravitee.resource.ai_model.api.AiTextModelResource;
+import io.gravitee.resource.ai_model.api.InferenceServiceClient;
+import io.gravitee.resource.ai_model.api.ModelFetcher;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Single;
 import java.util.ArrayList;
+import java.util.Map;
 
-public class FakeAiModelResource extends AiTextClassificationModelResource<FakeAiModelResourceConfiguration> {
+public class FakeAiModelResource
+    extends AiTextModelResource<FakeAiModelResourceConfiguration, io.gravitee.inference.api.classifier.ClassifierResults, io.gravitee.resource.ai_model.api.result.ClassifierResults> {
 
     @Override
     public Single<ClassifierResults> invokeModel(PromptInput promptInput) {
@@ -38,5 +42,25 @@ public class FakeAiModelResource extends AiTextClassificationModelResource<FakeA
         }
 
         return Single.just(new ClassifierResults(result));
+    }
+
+    @Override
+    protected ModelFetcher buildModelFetcher() {
+        return null;
+    }
+
+    @Override
+    protected InferenceServiceClient buildInferenceServiceClient() {
+        return null;
+    }
+
+    @Override
+    protected String getModelId() {
+        return "";
+    }
+
+    @Override
+    protected Map<String, Object> getModelConfiguration(Map map) {
+        return Map.of();
     }
 }
