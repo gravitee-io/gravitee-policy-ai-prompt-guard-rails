@@ -20,6 +20,8 @@ import io.gravitee.resource.ai_model.api.InferenceServiceClient;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
 import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Single;
+import io.vertx.core.eventbus.ReplyException;
+import io.vertx.core.eventbus.ReplyFailure;
 import java.util.ArrayList;
 
 public class FakeAiModelResource
@@ -33,8 +35,11 @@ public class FakeAiModelResource
 
     @Override
     public Single<ClassifierResults> invokeModel(PromptInput promptInput) {
-        var result = new ArrayList<ClassifierResults.ClassifierResult>();
+        if (promptInput.promptContent().contains("not ready")) {
+            return Single.error(new ReplyException(ReplyFailure.ERROR, 503, "Model is not ready"));
+        }
 
+        var result = new ArrayList<ClassifierResults.ClassifierResult>();
         if (promptInput.promptContent().contains("toxic") || promptInput.promptContent().contains("bullsh*t")) {
             result.add(new ClassifierResults.ClassifierResult("toxic", 0.9F, "token", 0, 1));
         }
