@@ -19,7 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.in;
 
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
 import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
@@ -39,9 +38,6 @@ import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRails
 import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.resource.ai_model.TextClassificationAiModelResource;
-import io.gravitee.resource.ai_model.client.TextClassificationInferenceClient;
-import io.gravitee.resource.ai_model.configuration.ModelConfiguration;
-import io.gravitee.resource.ai_model.configuration.ModelEnum;
 import io.gravitee.resource.ai_model.configuration.TextClassificationAiModelConfiguration;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Observable;
@@ -56,13 +52,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @Slf4j
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
-class AiPromptGuardRailsIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
+class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
 
     private static final Integer DELAY_BEFORE_REQUEST = 5;
     BehaviorSubject<Metrics> metricsSubject;
