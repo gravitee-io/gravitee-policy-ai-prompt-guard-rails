@@ -41,7 +41,7 @@
         <gravitee-resource-ai-model-api.version>2.1.0</gravitee-resource-ai-model-api.version>
 
         <!-- Tests -->
-        <gravitee-resource-ai-model-text-classification.version>2.0.0-bump-ai-model-resource-api-SNAPSHOT</gravitee-resource-ai-model-text-classification.version>
+        <gravitee-resource-ai-model-text-classification.version>2.0.0</gravitee-resource-ai-model-text-classification.version>
 
         <!-- Maven plugins -->
         <maven-plugin-assembly.version>3.7.1</maven-plugin-assembly.version>
