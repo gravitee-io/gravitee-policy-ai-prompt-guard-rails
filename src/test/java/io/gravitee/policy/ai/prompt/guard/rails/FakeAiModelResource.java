@@ -15,28 +15,51 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
-import io.gravitee.resource.ai_model.api.AiTextClassificationModelResource;
-import io.gravitee.resource.ai_model.api.ClassifierResults;
+import io.gravitee.resource.ai_model.api.AiTextModelResource;
+import io.gravitee.resource.ai_model.api.InferenceServiceClient;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Single;
+import io.vertx.core.eventbus.ReplyException;
+import io.vertx.core.eventbus.ReplyFailure;
 import java.util.ArrayList;
 
-public class FakeAiModelResource extends AiTextClassificationModelResource<FakeAiModelResourceConfiguration> {
+public class FakeAiModelResource
+    extends AiTextModelResource<FakeAiModelResourceConfiguration, io.gravitee.inference.api.classifier.ClassifierResults, io.gravitee.resource.ai_model.api.result.ClassifierResults> {
+
+    @Override
+    public void doStart() {}
+
+    @Override
+    public void doStop() {}
 
     @Override
     public Single<ClassifierResults> invokeModel(PromptInput promptInput) {
-        var result = new ArrayList<ClassifierResults.ClassifierResult>();
+        if (promptInput.promptContent().contains("not ready")) {
+            return Single.error(new ReplyException(ReplyFailure.ERROR, 503, "Model is not ready"));
+        }
 
-        if (promptInput.promptContent().contains("toxic")) {
+        var result = new ArrayList<ClassifierResults.ClassifierResult>();
+        if (promptInput.promptContent().contains("toxic") || promptInput.promptContent().contains("bullsh*t")) {
             result.add(new ClassifierResults.ClassifierResult("toxic", 0.9F, "token", 0, 1));
         }
         if (promptInput.promptContent().contains("identity_hate")) {
             result.add(new ClassifierResults.ClassifierResult("identity_hate", 0.8F, "token", 0, 1));
         }
-        if (promptInput.promptContent().contains("obscene")) {
+        if (promptInput.promptContent().contains("obscene") || promptInput.promptContent().contains("bullsh*t")) {
             result.add(new ClassifierResults.ClassifierResult("obscene", 0.2F, "token", 0, 1));
         }
 
         return Single.just(new ClassifierResults(result));
+    }
+
+    @Override
+    protected String getModelName() {
+        return "";
+    }
+
+    @Override
+    protected InferenceServiceClient<PromptInput, io.gravitee.inference.api.classifier.ClassifierResults> buildInferenceServiceClient() {
+        return null;
     }
 }
