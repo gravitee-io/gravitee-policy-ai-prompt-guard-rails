@@ -22,11 +22,11 @@ import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRails
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.policy.api.annotations.RequireResource;
-import io.gravitee.reporter.api.v4.metric.Metrics;
-import io.gravitee.resource.ai_model.api.ClassifierResults;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
+import io.vertx.core.eventbus.ReplyException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +39,12 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
     private final AiModelResourceProvider modelResourceProvider;
 
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration) {
+        this(configuration, new AiModelResourceProvider(configuration));
+    }
+
+    public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration, AiModelResourceProvider modelResourceProvider) {
         this.configuration = configuration;
-        this.modelResourceProvider = new AiModelResourceProvider(configuration);
+        this.modelResourceProvider = modelResourceProvider;
     }
 
     @Override
@@ -67,7 +71,6 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
         return promptContent.flatMapCompletable(prompt ->
             aiModelResource
                 .invokeModel(new PromptInput(prompt))
-                .doOnError(throwable -> log.error("Fail to analyze prompt", throwable))
                 .flatMapCompletable(classifierResults -> {
                     var detectedContentTypes = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
                     if (configuration.parseContentChecks().stream().anyMatch(detectedContentTypes::contains)) {
@@ -80,6 +83,13 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                         }
                     }
                     return Completable.complete();
+                })
+                .onErrorResumeNext(throwable -> {
+                    if (throwable instanceof ReplyException replyException) {
+                        return ctx.interruptWith(adaptReplyException(replyException));
+                    }
+
+                    return Completable.error(throwable);
                 })
         );
     }
@@ -97,5 +107,9 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
             .filter(classifierResult -> classifierResult.score() > sensitivityThreshold)
             .map(ClassifierResults.ClassifierResult::label)
             .collect(Collectors.toSet());
+    }
+
+    private ExecutionFailure adaptReplyException(ReplyException replyException) {
+        return new ExecutionFailure(replyException.failureCode()).message(replyException.getMessage());
     }
 }
