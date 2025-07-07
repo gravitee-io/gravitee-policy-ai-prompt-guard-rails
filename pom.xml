@@ -35,7 +35,7 @@
     <properties>
         <!-- Gravitee dependencies version -->
         <gravitee-apim.version>4.8.1</gravitee-apim.version>
-        <gravitee-resource-ai-model-api.version>1.0.0</gravitee-resource-ai-model-api.version>
+        <gravitee-resource-ai-model-api.version>2.1.0</gravitee-resource-ai-model-api.version>
 
         <!-- Maven plugins -->
         <maven-plugin-assembly.version>3.7.1</maven-plugin-assembly.version>
