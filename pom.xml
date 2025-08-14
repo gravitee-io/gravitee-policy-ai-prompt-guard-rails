@@ -36,7 +36,7 @@
 
     <properties>
         <!-- Gravitee dependencies version -->
-        <gravitee-apim.version>4.8.3</gravitee-apim.version>
+        <gravitee-apim.version>4.8.4</gravitee-apim.version>
         <gravitee-inference-service.version>1.2.0</gravitee-inference-service.version>
         <gravitee-resource-ai-model-api.version>2.1.0</gravitee-resource-ai-model-api.version>
 
