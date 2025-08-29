@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.0.0...2.0.1) (2025-08-29)
+
+
+### Bug Fixes
+
+* **deps:** update io.gravitee.resource:gravitee-resource-ai-model-api to v2.2.0 ([#19](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/issues/19)) ([f0e9647](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/f0e9647728b275cc3265ecbb4822d1821907c784))
+
 # [2.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/1.0.0...2.0.0) (2025-07-17)
 
 
