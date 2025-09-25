@@ -3,5 +3,6 @@
     "promptLocation": "{#request.jsonContent.prompt}",
     "sensitivityThreshold": 0.1,
     "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
-    "requestPolicy": "BLOCK_REQUEST"
+    "requestPolicy": "BLOCK_REQUEST",
+    "preventDuplicateKey": true
 }

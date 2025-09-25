@@ -2,5 +2,6 @@
     "resourceName": "ai-model-text-classification-resource",
     "promptLocation": "{#request.jsonContent.prompt}",
     "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
-    "requestPolicy": "LOG_REQUEST"
+    "requestPolicy": "LOG_REQUEST",
+    "preventDuplicateKey": true
 }

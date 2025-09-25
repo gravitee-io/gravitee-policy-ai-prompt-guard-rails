@@ -31,7 +31,7 @@
         },
         "preventDuplicateKey": {
             "title": "Prevent duplicate key",
-            "description": "If false, accept duplicate key",
+            "description": "If false, accept duplicate key. Be careful, allow duplicate key can allow to bypass AI safety mechanisms.",
             "type": "boolean",
             "default": true
         }
