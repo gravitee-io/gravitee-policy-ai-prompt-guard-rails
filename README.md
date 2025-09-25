@@ -73,6 +73,7 @@ Strikethrough text indicates that a version is deprecated.
 | Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Default  | Description  |
 |:----------------------|:-----------------------|:----------:|:---------|:-------------|
 | Content Checks<br>`contentChecks`| string|  | | Comma-separated list of model labels (e.g., TOXIC,OBSCENE)|
+| Prevent duplicate key<br>`preventDuplicateKey`| boolean|  | `true`| If false, accept duplicate key. Be careful, allow duplicate key can allow to bypass AI safety mechanisms.|
 | Prompt Location<br>`promptLocation`| string|  | | Prompt Location|
 | Request Policy<br>`requestPolicy`| enum (string)|  | `LOG_REQUEST`| Request Policy<br>Values: `BLOCK_REQUEST` `LOG_REQUEST`|
 | Resource Name<br>`resourceName`| string|  | | The resource name loading the Text Classification model|
@@ -119,7 +120,8 @@ Strikethrough text indicates that a version is deprecated.
                   "resourceName": "ai-model-text-classification-resource",
                   "promptLocation": "{#request.jsonContent.prompt}",
                   "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
-                  "requestPolicy": "LOG_REQUEST"
+                  "requestPolicy": "LOG_REQUEST",
+                  "preventDuplicateKey": true
               }
           }
         ]
@@ -165,7 +167,8 @@ Strikethrough text indicates that a version is deprecated.
                   "resourceName": "ai-model-text-classification-resource",
                   "promptLocation": "{#request.jsonContent.prompt}",
                   "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
-                  "requestPolicy": "BLOCK_REQUEST"
+                  "requestPolicy": "BLOCK_REQUEST",
+                  "preventDuplicateKey": true
               }
           }
         ]
@@ -212,7 +215,8 @@ Strikethrough text indicates that a version is deprecated.
                   "promptLocation": "{#request.jsonContent.prompt}",
                   "sensitivityThreshold": 0.1,
                   "contentChecks": "identity_hate,insult,obscene,severe_toxic,threat,toxic",
-                  "requestPolicy": "BLOCK_REQUEST"
+                  "requestPolicy": "BLOCK_REQUEST",
+                  "preventDuplicateKey": true
               }
           }
         ]
