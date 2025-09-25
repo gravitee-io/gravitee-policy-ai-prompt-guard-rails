@@ -26,7 +26,10 @@
         </encoder>
     </appender>
 
-    <logger name="io.gravitee" level="DEBUG" additivity="false">
+    <logger name="io.gravitee.policy.ai" level="debug" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    <logger name="io.gravitee" level="INFO" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 

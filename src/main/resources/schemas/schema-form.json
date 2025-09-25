@@ -28,6 +28,12 @@
             "type": "string",
             "default": "LOG_REQUEST",
             "enum": ["BLOCK_REQUEST", "LOG_REQUEST"]
+        },
+        "preventDuplicateKey": {
+            "title": "Prevent duplicate key",
+            "description": "If false, accept duplicate key",
+            "type": "boolean",
+            "default": true
         }
     }
 }

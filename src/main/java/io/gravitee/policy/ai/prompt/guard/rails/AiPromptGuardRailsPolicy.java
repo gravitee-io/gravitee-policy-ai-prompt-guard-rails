@@ -15,6 +15,9 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
@@ -26,6 +29,7 @@ import io.gravitee.resource.ai_model.api.model.PromptInput;
 import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.eventbus.ReplyException;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequireResource
 public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final AiPromptGuardRailsConfiguration configuration;
     private final AiModelResourceProvider modelResourceProvider;
 
@@ -44,6 +49,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration, AiModelResourceProvider modelResourceProvider) {
         this.configuration = configuration;
+        OBJECT_MAPPER.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, configuration.shouldPreventDuplicateKey());
         this.modelResourceProvider = modelResourceProvider;
     }
 
@@ -54,14 +60,15 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
     @Override
     public Completable onRequest(HttpPlainExecutionContext ctx) {
-        return ctx.request().bodyOrEmpty().flatMapCompletable(body -> checkContent(ctx));
+        return ctx
+            .request()
+            .bodyOrEmpty()
+            .flatMapCompletable(body -> checkContent(ctx));
     }
 
     private CompletableSource checkContent(HttpPlainExecutionContext ctx) {
-        var templateEngine = ctx.getTemplateEngine();
-
         var sensitivityThreshold = configuration.getSensitivityThreshold();
-        var promptContent = templateEngine.eval(configuration.promptLocation(), String.class).toSingle();
+        var promptContent = extractPrompt(ctx);
         var aiModelResource = modelResourceProvider.get(ctx);
 
         if (aiModelResource == null) {
@@ -77,8 +84,9 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                         logMetrics(detectedContentTypes, ctx, configuration.requestPolicy().getAction());
                         if (configuration.requestPolicy().equals(RequestPolicy.BLOCK_REQUEST)) {
                             return ctx.interruptWith(
-                                new ExecutionFailure(400)
-                                    .message(String.format("AI prompt validation detected. Reason: %s", detectedContentTypes))
+                                new ExecutionFailure(400).message(
+                                    String.format("AI prompt validation detected. Reason: %s", detectedContentTypes)
+                                )
                             );
                         }
                     }
@@ -92,6 +100,26 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                     return Completable.error(throwable);
                 })
         );
+    }
+
+    private Single<String> extractPrompt(HttpPlainExecutionContext ctx) {
+        var templateEngine = ctx.getTemplateEngine();
+        if (configuration.shouldPreventDuplicateKey()) {
+            return ctx
+                .request()
+                .bodyOrEmpty()
+                .flatMap(body -> {
+                    try {
+                        OBJECT_MAPPER.readTree(body.toString());
+                        return templateEngine.eval(configuration.promptLocation(), String.class).toSingle();
+                    } catch (JsonProcessingException e) {
+                        return ctx
+                            .interruptWith(new ExecutionFailure(400).message("Duplicate JSON fields are forbidden."))
+                            .toSingleDefault("");
+                    }
+                });
+        }
+        return templateEngine.eval(configuration.promptLocation(), String.class).toSingle();
     }
 
     private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {

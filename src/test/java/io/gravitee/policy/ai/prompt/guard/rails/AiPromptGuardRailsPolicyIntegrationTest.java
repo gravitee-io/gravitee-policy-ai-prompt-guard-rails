@@ -86,11 +86,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .map(response -> assertThat(response.statusCode()).isEqualTo(200))
@@ -115,11 +115,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "This is super friendly message"
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is super friendly message"
+                        }"""
                     )
                 )
                 .map(response -> assertThat(response.statusCode()).isEqualTo(200))
@@ -150,11 +150,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -189,11 +189,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -216,11 +216,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -247,11 +247,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "This is some friendly prompt"
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is some friendly prompt"
+                        }"""
                     )
                 )
                 .test()
@@ -274,11 +274,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "not ready. Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "not ready. Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -330,19 +330,18 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 )
                 .ignoreElements();
 
-            var clientAsserts = Completable
-                .fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
+            var clientAsserts = Completable.fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
                 .andThen(
                     client
                         .rxRequest(HttpMethod.GET, "/log-request")
                         .flatMap(request ->
                             request.rxSend(
                                 """
-                                                            {
-                                                              "model": "GPT-2000",
-                                                              "date": "01-01-2025",
-                                                              "prompt": "Nobody asked for your bullsh*t response."
-                                                            }"""
+                                {
+                                  "model": "GPT-2000",
+                                  "date": "01-01-2025",
+                                  "prompt": "Nobody asked for your bullsh*t response."
+                                }"""
                             )
                         )
                 )
@@ -369,19 +368,18 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 )
                 .ignoreElements();
 
-            var clientAsserts = Completable
-                .fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
+            var clientAsserts = Completable.fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
                 .andThen(
                     client
                         .rxRequest(HttpMethod.GET, "/block-request")
                         .flatMap(request ->
                             request.rxSend(
                                 """
-                                                            {
-                                                              "model": "GPT-2000",
-                                                              "date": "01-01-2025",
-                                                              "prompt": "Nobody asked for your bullsh*t response."
-                                                            }"""
+                                {
+                                  "model": "GPT-2000",
+                                  "date": "01-01-2025",
+                                  "prompt": "Nobody asked for your bullsh*t response."
+                                }"""
                             )
                         )
                         .flatMapPublisher(response -> {
@@ -396,9 +394,53 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         }
     }
 
+    @Nested
+    class PreventJsonThreat extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
+
+        @Override
+        public void configureResources(Map<String, ResourcePlugin> resources) {
+            super.configureResources(resources);
+
+            resources.putIfAbsent(
+                "ai-model-text-classification",
+                ResourceBuilder.build("ai-model-text-classification", FakeAiModelResource.class, FakeAiModelResourceConfiguration.class)
+            );
+        }
+
+        @Test
+        @DeployApi({ "/apis/prevent_duplicate_keys.json" })
+        void shouldRejectDuplicateKeys(HttpClient client, VertxTestContext context) {
+            wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
+
+            var clientAsserts = Completable.fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
+                .andThen(
+                    client
+                        .rxRequest(HttpMethod.GET, "/duplicate-key")
+                        .flatMap(request ->
+                            request.rxSend(
+                                """
+                                {
+                                  "model": "GPT-2000",
+                                  "date": "01-01-2025",
+                                  "prompt": "Hello world!",
+                                  "prompt": "Hello world!"
+                                }"""
+                            )
+                        )
+                        .flatMapPublisher(response -> {
+                            assertThat(response.statusCode()).isEqualTo(400);
+                            return response.toFlowable();
+                        })
+                )
+                .map(responseBody -> assertThat(responseBody).hasToString("Duplicate JSON fields are forbidden."))
+                .ignoreElements();
+
+            finalAssert(context, Completable.complete(), clientAsserts);
+        }
+    }
+
     private static void finalAssert(VertxTestContext context, Completable metricsAsserts, Completable clientAsserts) {
-        Completable
-            .mergeArray(metricsAsserts, clientAsserts)
+        Completable.mergeArray(metricsAsserts, clientAsserts)
             .doOnComplete(context::completeNow)
             .doFinally(context::completeNow)
             .doOnTerminate(context::completeNow)

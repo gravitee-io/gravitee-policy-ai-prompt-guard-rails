@@ -26,9 +26,9 @@ public record AiPromptGuardRailsConfiguration(
     String promptLocation,
     String contentChecks,
     Double sensitivityThreshold,
-    RequestPolicy requestPolicy
-)
-    implements PolicyConfiguration {
+    RequestPolicy requestPolicy,
+    Boolean preventDuplicateKey
+) implements PolicyConfiguration {
     private static final double DEFAULT_SENSITIVITY_THRESHOLD = 0.5;
 
     public List<String> parseContentChecks() {
@@ -36,10 +36,17 @@ public record AiPromptGuardRailsConfiguration(
             log.warn("Configured content checks list is empty");
             return List.of();
         }
-        return Arrays.stream(contentChecks.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        return Arrays.stream(contentChecks.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
     }
 
     public Double getSensitivityThreshold() {
         return sensitivityThreshold != null ? sensitivityThreshold : DEFAULT_SENSITIVITY_THRESHOLD;
+    }
+
+    public boolean shouldPreventDuplicateKey() {
+        return preventDuplicateKey != null && preventDuplicateKey;
     }
 }
