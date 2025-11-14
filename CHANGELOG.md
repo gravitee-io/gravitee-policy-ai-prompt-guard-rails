@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.0.1...2.1.0) (2025-11-14)
+
+
+### Features
+
+* enable for LLM & MCP Proxy API ([#22](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/issues/22)) ([5ce30f0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/5ce30f043ba8884197f33ed25032bd7eccb28485))
+
 ## [2.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.0.0...2.0.1) (2025-08-29)
 
 
