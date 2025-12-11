@@ -1,5 +1,9 @@
 rows:
     - data:
-          plugin: "1.0.0 and after"
-          apim: "4.8.x and after"
+          plugin: "1.0.0"
+          apim: "4.8.x and 4.9.x"
+          java: 21
+    - data:
+          plugin: "2.0.0 and after"
+          apim: "4.10.x and after"
           java: 21
