@@ -228,6 +228,18 @@ Strikethrough text indicates that a version is deprecated.
 
 ## Changelog
 
+### [3.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.1.0...3.0.0) (2025-12-15)
+
+
+##### Features
+
+* make the policy compatible with 4.10 ([c4955a5](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/c4955a5d7ae1c51241a41a66b12d9da0dfd6c7da))
+
+
+##### BREAKING CHANGES
+
+* requires 4.10
+
 ### [2.1.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.0.1...2.1.0) (2025-11-14)
 
 
