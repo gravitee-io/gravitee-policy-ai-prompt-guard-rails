@@ -25,7 +25,11 @@ import io.vertx.core.eventbus.ReplyFailure;
 import java.util.ArrayList;
 
 public class FakeAiModelResource
-    extends AiTextModelResource<FakeAiModelResourceConfiguration, io.gravitee.inference.api.classifier.ClassifierResults, io.gravitee.resource.ai_model.api.result.ClassifierResults> {
+    extends AiTextModelResource<
+        FakeAiModelResourceConfiguration,
+        io.gravitee.inference.api.classifier.ClassifierResults,
+        io.gravitee.resource.ai_model.api.result.ClassifierResults
+    > {
 
     @Override
     public void doStart() {}

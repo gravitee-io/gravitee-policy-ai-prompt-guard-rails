@@ -54,7 +54,10 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
     @Override
     public Completable onRequest(HttpPlainExecutionContext ctx) {
-        return ctx.request().bodyOrEmpty().flatMapCompletable(body -> checkContent(ctx));
+        return ctx
+            .request()
+            .bodyOrEmpty()
+            .flatMapCompletable(body -> checkContent(ctx));
     }
 
     private CompletableSource checkContent(HttpPlainExecutionContext ctx) {
@@ -77,8 +80,9 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                         logMetrics(detectedContentTypes, ctx, configuration.requestPolicy().getAction());
                         if (configuration.requestPolicy().equals(RequestPolicy.BLOCK_REQUEST)) {
                             return ctx.interruptWith(
-                                new ExecutionFailure(400)
-                                    .message(String.format("AI prompt validation detected. Reason: %s", detectedContentTypes))
+                                new ExecutionFailure(400).message(
+                                    String.format("AI prompt validation detected. Reason: %s", detectedContentTypes)
+                                )
                             );
                         }
                     }
