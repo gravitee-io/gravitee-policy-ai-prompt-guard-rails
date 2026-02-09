@@ -35,6 +35,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequireResource
 public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
+    private static final String UNEXPECTED_ERROR = "UNEXPECTED_ERROR";
+    private static final String CONFIGURATION_ISSUE = "CONFIGURATION_ISSUE";
     private final AiPromptGuardRailsConfiguration configuration;
     private final AiModelResourceProvider modelResourceProvider;
 
@@ -65,7 +67,9 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
         var aiModelResource = modelResourceProvider.get(ctx);
 
         if (aiModelResource == null) {
-            return ctx.interruptWith(new ExecutionFailure(500).message("AI Model Text Classification resource incorrectly configured"));
+            return ctx.interruptWith(
+                new ExecutionFailure(500).key(CONFIGURATION_ISSUE).message("AI Model Text Classification resource incorrectly configured")
+            );
         }
 
         return promptContent.flatMapCompletable(prompt ->
@@ -75,29 +79,29 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                     var detectedContentTypes = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
                     if (configuration.parseContentChecks().stream().anyMatch(detectedContentTypes::contains)) {
                         logMetrics(detectedContentTypes, ctx, configuration.requestPolicy().getAction());
-                        if (configuration.requestPolicy().equals(RequestPolicy.BLOCK_REQUEST)) {
-                            return ctx.interruptWith(
-                                new ExecutionFailure(400)
-                                    .message(String.format("AI prompt validation detected. Reason: %s", detectedContentTypes))
-                            );
+                        if (RequestPolicy.BLOCK_REQUEST.equals(configuration.requestPolicy())) {
+                            return Completable.error(new BlockQueryException(detectedContentTypes));
                         }
                     }
                     return Completable.complete();
                 })
-                .onErrorResumeNext(throwable -> {
-                    if (throwable instanceof ReplyException replyException) {
-                        return ctx.interruptWith(adaptReplyException(replyException));
+                .onErrorResumeNext(throwable ->
+                    switch (throwable) {
+                        case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()));
+                        case ReplyException replyException -> ctx.interruptWith(adaptReplyException(replyException));
+                        default -> ctx.interruptWith(
+                            new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR)
+                        );
                     }
-
-                    return Completable.error(throwable);
-                })
+                )
         );
     }
 
     private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {
-        var metrics = ctx.metrics();
-        metrics.putAdditionalKeywordMetric("keyword_content_violations", String.join(",", detectedCategories));
-        metrics.putAdditionalKeywordMetric("keyword_action", action);
+        ctx
+            .metrics()
+            .putAdditionalKeywordMetric("keyword_content_violations", String.join(",", detectedCategories))
+            .putAdditionalKeywordMetric("keyword_action", action);
     }
 
     private Set<String> detectClassifierResultContentTypes(ClassifierResults classifierResults, Double sensitivityThreshold) {
@@ -110,6 +114,6 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
     }
 
     private ExecutionFailure adaptReplyException(ReplyException replyException) {
-        return new ExecutionFailure(replyException.failureCode()).message(replyException.getMessage());
+        return new ExecutionFailure(replyException.failureCode()).message(replyException.getMessage()).cause(replyException);
     }
 }

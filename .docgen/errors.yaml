@@ -1,0 +1,5 @@
+rows:
+    - data:
+          key: "CONFIGURATION_ISSUE"
+    - data:
+          key: "UNEXPECTED_ERROR"
