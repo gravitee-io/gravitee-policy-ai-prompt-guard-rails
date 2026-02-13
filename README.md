@@ -54,6 +54,7 @@ The `ai-prompt-guard-rails` policy can be applied to the following API types and
 
 * `PROXY`
 * `LLM PROXY`
+* `A2A PROXY`
 
 ### Supported flow phases:
 
