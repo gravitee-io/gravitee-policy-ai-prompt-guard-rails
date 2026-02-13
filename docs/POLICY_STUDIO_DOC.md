@@ -37,3 +37,14 @@ This plugin allows usage of models based on meta LLama4:
 
 
 
+
+## Errors
+These templates are defined at the API level, in the "Entrypoint" section for v4 APIs, or in "Response Templates" for v2 APIs.
+The error keys sent by this policy are as follows:
+
+| Key |
+| ---  |
+| CONFIGURATION_ISSUE |
+| UNEXPECTED_ERROR |
+
+
