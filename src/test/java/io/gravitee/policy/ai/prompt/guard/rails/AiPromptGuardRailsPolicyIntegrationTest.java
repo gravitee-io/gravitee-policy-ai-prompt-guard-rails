@@ -49,7 +49,7 @@ import org.junit.jupiter.api.Test;
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
 class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
 
-    private static final Integer DELAY_BEFORE_REQUEST = 5;
+    private static final int DELAY_BEFORE_REQUEST = 15;
 
     @Nested
     class WithFakeAiResource extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
