@@ -229,6 +229,13 @@ Strikethrough text indicates that a version is deprecated.
 
 ## Changelog
 
+### [3.1.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.0.0...3.1.0) (2026-02-18)
+
+
+##### Features
+
+* enable A2A proxy ([da48342](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/da483428768620d8a94336858617fb7c80ac0b1f))
+
 ### [3.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/2.1.0...3.0.0) (2025-12-15)
 
 
