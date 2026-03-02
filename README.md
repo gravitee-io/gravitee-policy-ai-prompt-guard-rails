@@ -86,11 +86,11 @@ Strikethrough text indicates that a version is deprecated.
 #### 
 | Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Default  | Description  |
 |:----------------------|:-----------------------|:----------:|:---------|:-------------|
-| Content Checks<br>`contentChecks`| string|  | | Comma-separated list of model labels (e.g., TOXIC,OBSCENE)|
-| Prompt Location<br>`promptLocation`| string|  | | Prompt Location|
-| Request Policy<br>`requestPolicy`| enum (string)|  | `LOG_REQUEST`| Request Policy<br>Values: `BLOCK_REQUEST` `LOG_REQUEST`|
+| Content Checks<br>`contentChecks`| string|  | | Comma-separated list of model labels (e.g., TOXIC,OBSCENE). Keep empty for all|
+| Prompt Location<br>`promptLocation`| string| ✅| | Prompt Location|
+| Request Policy<br>`requestPolicy`| enum (string)| ✅| `LOG_REQUEST`| Request Policy<br>Values: `BLOCK_REQUEST` `LOG_REQUEST`|
 | Resource Name<br>`resourceName`| string|  | | The resource name loading the Text Classification model|
-| Sensitivity threshold<br>`sensitivityThreshold`| number|  | `0.5`| |
+| Sensitivity threshold<br>`sensitivityThreshold`| number<br>`[0.1, 1)`|  | `0.8`| |
 
 
 
