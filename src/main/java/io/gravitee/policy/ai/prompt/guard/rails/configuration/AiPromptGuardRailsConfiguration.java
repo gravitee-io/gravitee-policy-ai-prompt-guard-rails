@@ -39,7 +39,7 @@ public record AiPromptGuardRailsConfiguration(
         return Arrays.stream(contentChecks.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 
-    public Double getSensitivityThreshold() {
+    public double getSensitivityThreshold() {
         return sensitivityThreshold != null ? sensitivityThreshold : DEFAULT_SENSITIVITY_THRESHOLD;
     }
 }

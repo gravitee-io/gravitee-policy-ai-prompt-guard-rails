@@ -25,30 +25,21 @@ import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
 import io.gravitee.apim.gateway.tests.sdk.annotations.GatewayTest;
 import io.gravitee.apim.gateway.tests.sdk.resource.ResourceBuilder;
 import io.gravitee.definition.model.ExecutionMode;
-import io.gravitee.gateway.core.component.ComponentProvider;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
-import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.resource.ai_model.TextClassificationAiModelResource;
-import io.gravitee.resource.ai_model.api.AiTextModelResource;
 import io.gravitee.resource.ai_model.configuration.TextClassificationAiModelConfiguration;
-import io.gravitee.resource.api.ResourceManager;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.http.HttpClient;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import reactor.util.function.Tuple2;
+import org.junit.jupiter.api.*;
 import reactor.util.function.Tuples;
 
 @Slf4j
@@ -304,7 +295,12 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
     }
 
     @Nested
+    @DeployApi(
+        { "/apis/block_request_policy_empty_contentChecks.json", "/apis/block_request_policy.json", "/apis/log_request_policy.json" }
+    )
     class WithRealAiResource extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
+
+        Observable<Long> timer;
 
         @Override
         public void configureResources(Map<String, ResourcePlugin> resources) {
@@ -320,13 +316,17 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
             );
         }
 
+        @BeforeAll
+        public void setup() {
+            // add delay because the model is load asynchronously
+            timer = Observable.timer(DELAY_BEFORE_REQUEST, SECONDS);
+        }
+
         @Test
-        @DeployApi({ "/apis/log_request_policy.json" })
         void should_flag_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            Observable
-                .timer(DELAY_BEFORE_REQUEST, SECONDS)
+            timer
                 .flatMapSingle(v -> client.rxRequest(HttpMethod.GET, "/log-request"))
                 .firstOrError()
                 .flatMap(request ->
@@ -361,7 +361,6 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         }
 
         @Test
-        @DeployApi({ "/apis/block_request_policy.json" })
         void should_block_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
@@ -377,8 +376,8 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 )
                 .ignoreElements();
 
-            var clientAsserts = Completable
-                .fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
+            var clientAsserts = timer
+                .ignoreElements()
                 .andThen(
                     client
                         .rxRequest(HttpMethod.GET, "/block-request")
@@ -390,6 +389,48 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                                                               "date": "01-01-2025",
                                                               "prompt": "Nobody asked for your bullsh*t response."
                                                             }"""
+                            )
+                        )
+                        .flatMapPublisher(response -> {
+                            assertThat(response.statusCode()).isEqualTo(400);
+                            return response.toFlowable();
+                        })
+                )
+                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
+                .ignoreElements();
+
+            finalAssert(context, metricsAsserts, clientAsserts);
+        }
+
+        @Test
+        void should_block_request_if_prompt_violation_detected_and_empty_contentChecks(HttpClient client, VertxTestContext context) {
+            wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
+
+            var metricsAsserts = metricsSubject
+                .doOnNext(metrics ->
+                    assertThat(metrics)
+                        .extracting(Metrics::getAdditionalMetrics)
+                        .asInstanceOf(InstanceOfAssertFactories.SET)
+                        .containsExactlyInAnyOrder(
+                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
+                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
+                        )
+                )
+                .ignoreElements();
+
+            var clientAsserts = timer
+                .ignoreElements()
+                .andThen(
+                    client
+                        .rxRequest(HttpMethod.GET, "/block-request-empty-contentChecks")
+                        .flatMap(request ->
+                            request.rxSend(
+                                """
+                                                                                {
+                                                                                  "model": "GPT-2000",
+                                                                                  "date": "01-01-2025",
+                                                                                  "prompt": "Nobody asked for your bullsh*t response."
+                                                                                }"""
                             )
                         )
                         .flatMapPublisher(response -> {

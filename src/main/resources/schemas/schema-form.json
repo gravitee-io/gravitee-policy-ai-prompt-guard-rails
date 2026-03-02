@@ -5,7 +5,17 @@
         "resourceName": {
             "title": "Resource Name",
             "description": "The resource name loading the Text Classification model",
-            "type": "string"
+            "type": "string",
+            "x-schema-form": {
+                "event": {
+                    "name": "fetch-resources",
+                    "regexTypes": "^ai-model-text-classification"
+                }
+            },
+            "gioConfig": {
+                "uiType": "resource-type",
+                "uiTypeProps": { "resourceType": "ai-model-text-classification" }
+            }
         },
         "promptLocation": {
             "title": "Prompt Location",
@@ -14,13 +24,16 @@
         },
         "contentChecks": {
             "title": "Content Checks",
-            "description": "Comma-separated list of model labels (e.g., TOXIC,OBSCENE)",
+            "description": "Comma-separated list of model labels (e.g., TOXIC,OBSCENE). Keep empty for all",
             "type": "string"
         },
         "sensitivityThreshold": {
             "title": "Sensitivity threshold",
             "type": "number",
-            "default": 0.5
+            "default": 0.8,
+            "minimum": 0.1,
+            "exclusiveMaximum": 1,
+            "multipleOf": 0.01
         },
         "requestPolicy": {
             "title": "Request Policy",
@@ -29,5 +42,6 @@
             "default": "LOG_REQUEST",
             "enum": ["BLOCK_REQUEST", "LOG_REQUEST"]
         }
-    }
+    },
+    "required": ["promptLocation", "requestPolicy"]
 }
