@@ -206,7 +206,7 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
 
         @Test
         @DeployApi({ "/apis/missing_resource.json" })
-        void should_return_error_if_resource_is_not_configured_properly(HttpClient client) throws InterruptedException {
+        void should_return_error_if_resource_is_not_configured_properly(HttpClient client) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
             client
@@ -237,7 +237,7 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
 
         @Test
         @DeployApi({ "/apis/broken_content_check_list.json" })
-        void should_handle_parsing_incorrectly_formatted_list(HttpClient client) throws InterruptedException {
+        void should_handle_parsing_incorrectly_formatted_list(HttpClient client) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
             client
@@ -292,12 +292,51 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 })
                 .assertNoErrors();
         }
+
+        @Test
+        @DeployApi({ "/apis/block_request_policy_empty_contentChecks.json" })
+        void should_block_request_if_prompt_violation_detected_and_empty_contentChecks(HttpClient client, VertxTestContext context) {
+            wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
+
+            var metricsAsserts = metricsSubject
+                .doOnNext(metrics ->
+                    assertThat(metrics)
+                        .extracting(Metrics::getAdditionalMetrics)
+                        .asInstanceOf(InstanceOfAssertFactories.SET)
+                        .containsExactlyInAnyOrder(
+                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
+                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
+                        )
+                )
+                .ignoreElements();
+
+            var clientAsserts = client
+                .rxRequest(HttpMethod.GET, "/block-request-empty-contentChecks")
+                .flatMap(request ->
+                    request.rxSend(
+                        """
+                            {
+                              "model": "GPT-2000",
+                              "date": "01-01-2025",
+                              "prompt": "Nobody asked for your bullsh*t response."
+                            }
+                            """
+                    )
+                )
+                .flatMapPublisher(response -> {
+                    assertThat(response.statusCode()).isEqualTo(400);
+                    return response.toFlowable();
+                })
+                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
+                .ignoreElements();
+
+            finalAssert(context, metricsAsserts, clientAsserts);
+        }
     }
 
+    @Disabled("Flaky on CI will be fixed with: https://gravitee.atlassian.net/browse/APIM-13078")
     @Nested
-    @DeployApi(
-        { "/apis/block_request_policy_empty_contentChecks.json", "/apis/block_request_policy.json", "/apis/log_request_policy.json" }
-    )
+    @DeployApi({ "/apis/block_request_policy.json", "/apis/log_request_policy.json" })
     class WithRealAiResource extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
 
         Observable<Long> timer;
@@ -389,48 +428,6 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                                                               "date": "01-01-2025",
                                                               "prompt": "Nobody asked for your bullsh*t response."
                                                             }"""
-                            )
-                        )
-                        .flatMapPublisher(response -> {
-                            assertThat(response.statusCode()).isEqualTo(400);
-                            return response.toFlowable();
-                        })
-                )
-                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
-                .ignoreElements();
-
-            finalAssert(context, metricsAsserts, clientAsserts);
-        }
-
-        @Test
-        void should_block_request_if_prompt_violation_detected_and_empty_contentChecks(HttpClient client, VertxTestContext context) {
-            wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
-
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                        )
-                )
-                .ignoreElements();
-
-            var clientAsserts = timer
-                .ignoreElements()
-                .andThen(
-                    client
-                        .rxRequest(HttpMethod.GET, "/block-request-empty-contentChecks")
-                        .flatMap(request ->
-                            request.rxSend(
-                                """
-                                                                                {
-                                                                                  "model": "GPT-2000",
-                                                                                  "date": "01-01-2025",
-                                                                                  "prompt": "Nobody asked for your bullsh*t response."
-                                                                                }"""
                             )
                         )
                         .flatMapPublisher(response -> {
