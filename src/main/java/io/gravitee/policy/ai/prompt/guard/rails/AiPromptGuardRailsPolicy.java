@@ -90,7 +90,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                 })
                 .onErrorResumeNext(throwable ->
                     switch (throwable) {
-                        case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()));
+                        case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()).cause(e));
                         case ReplyException replyException -> ctx.interruptWith(adaptReplyException(replyException));
                         default -> ctx.interruptWith(
                             new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR)
