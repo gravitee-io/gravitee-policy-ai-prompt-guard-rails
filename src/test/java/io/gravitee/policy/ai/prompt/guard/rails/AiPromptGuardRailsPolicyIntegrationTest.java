@@ -42,7 +42,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.http.HttpClient;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-@Slf4j
+@CustomLog
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
 class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
@@ -93,11 +93,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .map(response -> assertThat(response.statusCode()).isEqualTo(200))
@@ -122,11 +122,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "This is super friendly message"
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is super friendly message"
+                        }"""
                     )
                 )
                 .map(response -> assertThat(response.statusCode()).isEqualTo(200))
@@ -157,11 +157,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -196,11 +196,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -223,11 +223,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -254,11 +254,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "This is some friendly prompt"
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is some friendly prompt"
+                        }"""
                     )
                 )
                 .test()
@@ -281,11 +281,11 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "not ready. Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "not ready. Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
                 .flatMapPublisher(response -> {
@@ -325,19 +325,18 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_flag_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            Observable
-                .timer(DELAY_BEFORE_REQUEST, SECONDS)
+            Observable.timer(DELAY_BEFORE_REQUEST, SECONDS)
                 .flatMapSingle(v -> client.rxRequest(HttpMethod.GET, "/log-request"))
                 .firstOrError()
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                                {
-                                                                  "model": "GPT-2000",
-                                                                  "date": "01-01-2025",
-                                                                  "prompt": "Nobody asked for your bullsh*t response."
-                                                                }
-                                                                """
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
                 .flatMap(response -> metricsSubject.firstOrError().map(metrics -> Tuples.of(metrics, response)))
@@ -377,19 +376,18 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
                 )
                 .ignoreElements();
 
-            var clientAsserts = Completable
-                .fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
+            var clientAsserts = Completable.fromObservable(Observable.timer(DELAY_BEFORE_REQUEST, SECONDS))
                 .andThen(
                     client
                         .rxRequest(HttpMethod.GET, "/block-request")
                         .flatMap(request ->
                             request.rxSend(
                                 """
-                                                            {
-                                                              "model": "GPT-2000",
-                                                              "date": "01-01-2025",
-                                                              "prompt": "Nobody asked for your bullsh*t response."
-                                                            }"""
+                                {
+                                  "model": "GPT-2000",
+                                  "date": "01-01-2025",
+                                  "prompt": "Nobody asked for your bullsh*t response."
+                                }"""
                             )
                         )
                         .flatMapPublisher(response -> {
@@ -405,8 +403,7 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
     }
 
     private static void finalAssert(VertxTestContext context, Completable metricsAsserts, Completable clientAsserts) {
-        Completable
-            .mergeArray(metricsAsserts, clientAsserts)
+        Completable.mergeArray(metricsAsserts, clientAsserts)
             .doOnComplete(context::completeNow)
             .doFinally(context::completeNow)
             .doOnTerminate(context::completeNow)

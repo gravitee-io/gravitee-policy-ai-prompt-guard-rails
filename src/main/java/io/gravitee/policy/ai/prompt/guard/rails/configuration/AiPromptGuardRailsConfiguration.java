@@ -18,17 +18,16 @@ package io.gravitee.policy.ai.prompt.guard.rails.configuration;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.Arrays;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public record AiPromptGuardRailsConfiguration(
     String resourceName,
     String promptLocation,
     String contentChecks,
     Double sensitivityThreshold,
     RequestPolicy requestPolicy
-)
-    implements PolicyConfiguration {
+) implements PolicyConfiguration {
     private static final double DEFAULT_SENSITIVITY_THRESHOLD = 0.5;
 
     public List<String> parseContentChecks() {
@@ -36,7 +35,10 @@ public record AiPromptGuardRailsConfiguration(
             log.warn("Configured content checks list is empty");
             return List.of();
         }
-        return Arrays.stream(contentChecks.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        return Arrays.stream(contentChecks.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
     }
 
     public Double getSensitivityThreshold() {

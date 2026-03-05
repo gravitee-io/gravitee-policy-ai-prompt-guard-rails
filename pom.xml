@@ -31,12 +31,12 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>23.4.1</version>
+        <version>24.0.0-alpha.3</version>
     </parent>
 
     <properties>
         <!-- Gravitee dependencies version -->
-        <gravitee-apim.version>4.10.7</gravitee-apim.version>
+        <gravitee-apim.version>4.11.0-SNAPSHOT</gravitee-apim.version>
         <gravitee-inference-service.version>1.4.0</gravitee-inference-service.version>
         <gravitee-resource-ai-model-api.version>2.2.0</gravitee-resource-ai-model-api.version>
 
@@ -85,6 +85,11 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gravitee.node</groupId>
+            <artifactId>gravitee-node-logging</artifactId>
             <scope>provided</scope>
         </dependency>
 
