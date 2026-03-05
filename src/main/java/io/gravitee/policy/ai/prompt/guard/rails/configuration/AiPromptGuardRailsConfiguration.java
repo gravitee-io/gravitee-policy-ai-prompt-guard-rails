@@ -18,9 +18,9 @@ package io.gravitee.policy.ai.prompt.guard.rails.configuration;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.Arrays;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public record AiPromptGuardRailsConfiguration(
     String resourceName,
     String promptLocation,

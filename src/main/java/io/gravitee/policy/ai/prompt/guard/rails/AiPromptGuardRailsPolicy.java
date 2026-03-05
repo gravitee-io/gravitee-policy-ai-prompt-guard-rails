@@ -29,9 +29,9 @@ import io.reactivex.rxjava3.core.CompletableSource;
 import io.vertx.core.eventbus.ReplyException;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 @RequireResource
 public class AiPromptGuardRailsPolicy implements HttpPolicy {
 

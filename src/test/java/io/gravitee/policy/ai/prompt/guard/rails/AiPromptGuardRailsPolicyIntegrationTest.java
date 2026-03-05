@@ -42,7 +42,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.http.HttpClient;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-@Slf4j
+@CustomLog
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
 class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {

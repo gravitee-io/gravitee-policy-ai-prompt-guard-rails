@@ -48,8 +48,8 @@ import io.vertx.rxjava3.core.Vertx;
 import io.vertx.rxjava3.core.http.HttpClient;
 import java.nio.file.Files;
 import java.util.Map;
+import lombok.CustomLog;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +57,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
-@Slf4j
+@CustomLog
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @GatewayTest
 class AbstractAiPromptGuardRailsPolicyIntegrationTest
