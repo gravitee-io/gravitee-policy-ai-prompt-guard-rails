@@ -1,3 +1,15 @@
+# [3.2.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.1.1...3.2.0) (2026-03-10)
+
+
+### Bug Fixes
+
+* move test to fake model to reduce flakiness ([cfc5827](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/cfc58276ae3166fb0ba03a9d805b5e186801e848))
+
+
+### Features
+
+* filter all detected categories when contentChecks is empty ([bdc3ebc](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/bdc3ebca547cd5c5594c2794668750e56721ac41))
+
 ## [3.1.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.1.0...3.1.1) (2026-02-19)
 
 
