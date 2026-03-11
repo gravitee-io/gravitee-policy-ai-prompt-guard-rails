@@ -56,7 +56,10 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
 
     @Override
     public Completable onRequest(HttpPlainExecutionContext ctx) {
-        return ctx.request().bodyOrEmpty().flatMapCompletable(body -> checkContent(ctx));
+        return ctx
+            .request()
+            .bodyOrEmpty()
+            .flatMapCompletable(body -> checkContent(ctx));
     }
 
     private CompletableSource checkContent(HttpPlainExecutionContext ctx) {
