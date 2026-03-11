@@ -17,7 +17,6 @@ package io.gravitee.policy.ai.prompt.guard.rails;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
@@ -31,8 +30,6 @@ import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.resource.ai_model.TextClassificationAiModelResource;
 import io.gravitee.resource.ai_model.configuration.TextClassificationAiModelConfiguration;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.core.Observable;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.http.HttpClient;
@@ -40,14 +37,11 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.*;
-import reactor.util.function.Tuples;
 
 @Slf4j
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
 class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
-
-    private static final int DELAY_BEFORE_REQUEST = 15;
 
     @Nested
     class WithFakeAiResource extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
@@ -67,34 +61,36 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_flag_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-logged"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                        )
-                )
-                .ignoreElements();
-
+            // When
             var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/log-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }"""
                     )
                 )
-                .map(response -> assertThat(response.statusCode()).isEqualTo(200))
-                .ignoreElement();
+                .flatMap(this::toResult);
 
-            finalAssert(context, metricsAsserts, clientAsserts);
+            // Then
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(200);
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-logged"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
@@ -102,28 +98,35 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_ignore_flagging_request_if_prompt_violation_not_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics).extracting(Metrics::getAdditionalMetrics).asInstanceOf(InstanceOfAssertFactories.SET).isEmpty()
-                )
-                .ignoreElements();
-
+            // When
             var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/log-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "This is super friendly message"
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is super friendly message"
+                        }
+                        """
                     )
                 )
-                .map(response -> assertThat(response.statusCode()).isEqualTo(200))
-                .ignoreElement();
+                .flatMap(this::toResult);
 
-            finalAssert(context, metricsAsserts, clientAsserts);
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(200);
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .isEmpty();
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
@@ -131,38 +134,37 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_block_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                        )
-                )
-                .ignoreElements();
-
+            // When
             var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/block-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMapPublisher(response -> {
-                    assertThat(response.statusCode()).isEqualTo(400);
-                    return response.toFlowable();
-                })
-                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
-                .ignoreElements();
+                .flatMap(this::toResult);
 
-            finalAssert(context, metricsAsserts, clientAsserts);
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(400);
+                            assertThat(result.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
@@ -170,127 +172,132 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_change_sensitivity_if_custom_sensitivity_threshold_provided(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic,obscene")
-                        )
-                )
-                .ignoreElements();
-
+            // When
             var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/block-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                    {
-                                                      "model": "GPT-2000",
-                                                      "date": "01-01-2025",
-                                                      "prompt": "Nobody asked for your bullsh*t response."
-                                                    }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMapPublisher(response -> {
-                    assertThat(response.statusCode()).isEqualTo(400);
-                    return response.toFlowable();
-                })
-                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic, obscene]"))
-                .ignoreElements();
+                .flatMap(this::toResult);
 
-            finalAssert(context, metricsAsserts, clientAsserts);
+            // Then
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(400);
+                            assertThat(result.responseBody().toString()).contains(
+                                "AI prompt validation detected. Reason:",
+                                "toxic",
+                                "obscene"
+                            );
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic,obscene"));
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
         @DeployApi({ "/apis/missing_resource.json" })
-        void should_return_error_if_resource_is_not_configured_properly(HttpClient client) {
+        void should_return_error_if_resource_is_not_configured_properly(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            client
+            var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/missing-resource")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMapPublisher(response -> {
-                    assertThat(response.statusCode()).isEqualTo(500);
-                    return response.toFlowable();
-                })
-                .test()
-                .awaitDone(20, SECONDS)
-                .assertComplete()
-                .assertValue(responseBody -> {
-                    assertThat(responseBody).hasToString("AI Model Text Classification resource incorrectly configured");
-                    return true;
-                })
-                .assertNoErrors();
+                .flatMap(this::toResult);
+
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(500);
+                            assertThat(result.responseBody()).hasToString("AI Model Text Classification resource incorrectly configured");
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
         @DeployApi({ "/apis/broken_content_check_list.json" })
-        void should_handle_parsing_incorrectly_formatted_list(HttpClient client) {
+        void should_handle_parsing_incorrectly_formatted_list(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            client
+            var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/broken-content-check")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "This is some friendly prompt"
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "This is some friendly prompt"
+                        }
+                        """
                     )
                 )
-                .test()
-                .awaitDone(20, SECONDS)
-                .assertComplete()
-                .assertValue(response -> {
-                    assertThat(response.statusCode()).isEqualTo(200);
-                    return true;
-                })
-                .assertNoErrors();
+                .flatMap(this::toResult);
+
+            then(clientAsserts).subscribe(
+                result -> context.verify(() -> assertThat(result.statusCode()).isEqualTo(200)).completeNow(),
+                context::failNow
+            );
         }
 
         @Test
         @DeployApi({ "/apis/log_request_policy.json" })
-        void should_return_an_error_when_inference_fail(HttpClient client) {
+        void should_return_an_error_when_inference_fail(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            client
+            var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/log-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                            {
-                                              "model": "GPT-2000",
-                                              "date": "01-01-2025",
-                                              "prompt": "not ready. Nobody asked for your bullsh*t response."
-                                            }"""
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "not ready. Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMapPublisher(response -> {
-                    assertThat(response.statusCode()).isEqualTo(503);
-                    return response.toFlowable();
-                })
-                .test()
-                .awaitDone(20, SECONDS)
-                .assertComplete()
-                .assertValue(responseBody -> {
-                    assertThat(responseBody).hasToString("Model is not ready");
-                    return true;
-                })
-                .assertNoErrors();
+                .flatMap(this::toResult);
+
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(503);
+                            assertThat(result.responseBody()).hasToString("Model is not ready");
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
@@ -298,48 +305,44 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         void should_block_request_if_prompt_violation_detected_and_empty_contentChecks(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                        )
-                )
-                .ignoreElements();
-
+            // When
             var clientAsserts = client
                 .rxRequest(HttpMethod.GET, "/block-request-empty-contentChecks")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                            {
-                              "model": "GPT-2000",
-                              "date": "01-01-2025",
-                              "prompt": "Nobody asked for your bullsh*t response."
-                            }
-                            """
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMapPublisher(response -> {
-                    assertThat(response.statusCode()).isEqualTo(400);
-                    return response.toFlowable();
-                })
-                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
-                .ignoreElements();
+                .flatMap(this::toResult);
 
-            finalAssert(context, metricsAsserts, clientAsserts);
+            // Then
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                            assertThat(result.statusCode()).isEqualTo(400);
+                            assertThat(result.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
     }
 
-    @Disabled("Flaky on CI will be fixed with: https://gravitee.atlassian.net/browse/APIM-13078")
     @Nested
     @DeployApi({ "/apis/block_request_policy.json", "/apis/log_request_policy.json" })
     class WithRealAiResource extends AbstractAiPromptGuardRailsPolicyIntegrationTest {
-
-        Observable<Long> timer;
 
         @Override
         public void configureResources(Map<String, ResourcePlugin> resources) {
@@ -355,106 +358,79 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
             );
         }
 
-        @BeforeAll
-        public void setup() {
-            // add delay because the model is load asynchronously
-            timer = Observable.timer(DELAY_BEFORE_REQUEST, SECONDS);
-        }
-
         @Test
         void should_flag_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            timer
-                .flatMapSingle(v -> client.rxRequest(HttpMethod.GET, "/log-request"))
-                .firstOrError()
+            // When
+            var clientAsserts = client
+                .rxRequest(HttpMethod.GET, "/log-request")
                 .flatMap(request ->
                     request.rxSend(
                         """
-                                                                {
-                                                                  "model": "GPT-2000",
-                                                                  "date": "01-01-2025",
-                                                                  "prompt": "Nobody asked for your bullsh*t response."
-                                                                }
-                                                                """
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
                     )
                 )
-                .flatMap(response -> metricsSubject.firstOrError().map(metrics -> Tuples.of(metrics, response)))
-                .subscribe(
-                    response -> {
-                        context
-                            .verify(() -> {
-                                assertThat(response.getT2().statusCode()).isEqualTo(200);
-                                assertThat(response.getT1())
-                                    .extracting(Metrics::getAdditionalMetrics)
-                                    .asInstanceOf(InstanceOfAssertFactories.SET)
-                                    .containsExactlyInAnyOrder(
-                                        new AdditionalMetric.KeywordMetric("keyword_action", "request-logged"),
-                                        new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                                    );
-                            })
-                            .completeNow();
-                    },
-                    context::failNow
-                );
+                .flatMap(this::toResult);
+
+            // Then
+            then(clientAsserts).subscribe(
+                response ->
+                    context
+                        .verify(() -> {
+                            assertThat(response.statusCode()).isEqualTo(200);
+                            assertThat(response.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-logged"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                        })
+                        .completeNow(),
+                context::failNow
+            );
         }
 
         @Test
         void should_block_request_if_prompt_violation_detected(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
 
-            var metricsAsserts = metricsSubject
-                .doOnNext(metrics ->
-                    assertThat(metrics)
-                        .extracting(Metrics::getAdditionalMetrics)
-                        .asInstanceOf(InstanceOfAssertFactories.SET)
-                        .containsExactlyInAnyOrder(
-                            new AdditionalMetric.KeywordMetric("keyword_action", "request-blocked"),
-                            new AdditionalMetric.KeywordMetric("keyword_content_violations", "toxic")
-                        )
+            // When
+            var clientAsserts = client
+                .rxRequest(HttpMethod.GET, "/block-request")
+                .flatMap(request ->
+                    request.rxSend(
+                        """
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "Nobody asked for your bullsh*t response."
+                        }
+                        """
+                    )
                 )
-                .ignoreElements();
+                .flatMap(this::toResult);
 
-            var clientAsserts = timer
-                .ignoreElements()
-                .andThen(
-                    client
-                        .rxRequest(HttpMethod.GET, "/block-request")
-                        .flatMap(request ->
-                            request.rxSend(
-                                """
-                                                            {
-                                                              "model": "GPT-2000",
-                                                              "date": "01-01-2025",
-                                                              "prompt": "Nobody asked for your bullsh*t response."
-                                                            }"""
-                            )
-                        )
-                        .flatMapPublisher(response -> {
-                            assertThat(response.statusCode()).isEqualTo(400);
-                            return response.toFlowable();
+            // Then
+            then(clientAsserts).subscribe(
+                tuple ->
+                    context
+                        .verify(() -> {
+                            assertThat(tuple.statusCode()).isEqualTo(400);
+                            assertThat(tuple.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
+                            assertThat(tuple.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
                         })
-                )
-                .map(responseBody -> assertThat(responseBody).hasToString("AI prompt validation detected. Reason: [toxic]"))
-                .ignoreElements();
-
-            finalAssert(context, metricsAsserts, clientAsserts);
+                        .completeNow(),
+                context::failNow
+            );
         }
-    }
-
-    private static void finalAssert(VertxTestContext context, Completable metricsAsserts, Completable clientAsserts) {
-        Completable
-            .mergeArray(metricsAsserts, clientAsserts)
-            .doOnComplete(context::completeNow)
-            .doFinally(context::completeNow)
-            .doOnTerminate(context::completeNow)
-            .doOnEvent(e -> {
-                if (e == null) {
-                    context.completeNow();
-                } else {
-                    context.failNow(e);
-                }
-            })
-            .subscribe();
     }
 }

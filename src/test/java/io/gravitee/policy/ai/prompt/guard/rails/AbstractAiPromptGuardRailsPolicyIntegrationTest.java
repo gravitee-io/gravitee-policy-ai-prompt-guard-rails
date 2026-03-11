@@ -15,19 +15,11 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
-import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
 import io.gravitee.apim.gateway.tests.sdk.annotations.GatewayTest;
 import io.gravitee.apim.gateway.tests.sdk.connector.EndpointBuilder;
 import io.gravitee.apim.gateway.tests.sdk.connector.EntrypointBuilder;
 import io.gravitee.apim.gateway.tests.sdk.reporter.FakeReporter;
-import io.gravitee.apim.gateway.tests.sdk.resource.ResourceBuilder;
-import io.gravitee.definition.model.ExecutionMode;
 import io.gravitee.inference.service.InferenceService;
 import io.gravitee.plugin.endpoint.EndpointConnectorPlugin;
 import io.gravitee.plugin.endpoint.http.proxy.HttpProxyEndpointConnectorFactory;
@@ -37,25 +29,22 @@ import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
 import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
-import io.gravitee.resource.ai_model.TextClassificationAiModelResource;
-import io.gravitee.resource.ai_model.configuration.TextClassificationAiModelConfiguration;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.Vertx;
-import io.vertx.rxjava3.core.http.HttpClient;
+import io.vertx.rxjava3.core.buffer.Buffer;
+import io.vertx.rxjava3.core.http.HttpClientResponse;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.api.Condition;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Test;
 
 @Slf4j
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -63,7 +52,6 @@ import org.junit.jupiter.api.Test;
 class AbstractAiPromptGuardRailsPolicyIntegrationTest
     extends AbstractPolicyTest<AiPromptGuardRailsPolicy, AiPromptGuardRailsConfiguration> {
 
-    private static final Integer DELAY_BEFORE_REQUEST = 5;
     BehaviorSubject<Metrics> metricsSubject;
 
     private static InferenceService inferenceService;
@@ -102,5 +90,42 @@ class AbstractAiPromptGuardRailsPolicyIntegrationTest
                 metricsSubject.onComplete();
             }
         });
+    }
+
+    protected @NonNull Single<Result> then(Single<Result> clientAsserts) {
+        return Single.zip(
+            metricsSubject.firstElement().switchIfEmpty(Single.error(new NoSuchElementException("Metrics not available"))),
+            clientAsserts,
+            Result::new
+        );
+    }
+
+    protected @NonNull Single<Result> toResult(HttpClientResponse response) {
+        return response
+            .toFlowable()
+            .reduce(Buffer.buffer(), Buffer::appendBuffer)
+            .map(responseBody -> new Result(response, responseBody));
+    }
+
+    protected Condition<Object> keyword(String expectedKey, String expectedValue) {
+        return new Condition<>(
+            e ->
+                e instanceof AdditionalMetric.KeywordMetric(String key, String value) &&
+                expectedKey.equals(key) &&
+                expectedValue.equals(value),
+            "keyword additionnal metric with key %s and value %s",
+            expectedKey,
+            expectedValue
+        );
+    }
+
+    record Result(Metrics metrics, Integer statusCode, Buffer responseBody) {
+        Result(HttpClientResponse response, Buffer responseBody) {
+            this(null, response.statusCode(), responseBody);
+        }
+
+        Result(Metrics metrics, Result result) {
+            this(metrics, result.statusCode, result.responseBody);
+        }
     }
 }
