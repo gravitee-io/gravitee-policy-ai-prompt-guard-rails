@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.0...3.2.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* do not block request when model detects no content violation ([af628f3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/af628f3bdb70a99bf91cba9d4f0658fc6fcab44f))
+
 # [3.2.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.1.1...3.2.0) (2026-03-10)
 
 
