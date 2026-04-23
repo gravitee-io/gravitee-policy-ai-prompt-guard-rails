@@ -301,6 +301,49 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
         }
 
         @Test
+        @DeployApi({ "/apis/block_request_policy_filtered_contentChecks.json" })
+        void should_only_report_configured_contentChecks_labels_when_multiple_labels_detected_above_threshold(
+            HttpClient client,
+            VertxTestContext context
+        ) {
+            wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
+
+            // When: prompt triggers both "toxic" (0.9) and "obscene" (0.2), threshold is 0.1 so both pass,
+            // but contentChecks is restricted to "toxic" only
+            var clientAsserts = client
+                .rxRequest(HttpMethod.GET, "/block-request-filtered-contentChecks")
+                .flatMap(request ->
+                    request.rxSend(
+                        """
+                        {
+                          "model": "GPT-2000",
+                          "date": "01-01-2025",
+                          "prompt": "hello! I'm a toxic message."
+                        }
+                        """
+                    )
+                )
+                .flatMap(this::toResult);
+
+            // Then: response reason must only contain "toxic", not "obscene"
+            then(clientAsserts).subscribe(
+                result ->
+                    context
+                        .verify(() -> {
+                            assertThat(result.statusCode()).isEqualTo(400);
+                            assertThat(result.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
+                            assertThat(result.metrics())
+                                .extracting(Metrics::getAdditionalMetrics)
+                                .asInstanceOf(InstanceOfAssertFactories.SET)
+                                .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                        })
+                        .completeNow(),
+                context::failNow
+            );
+        }
+
+        @Test
         @DeployApi({ "/apis/block_request_policy_empty_contentChecks.json" })
         void should_block_request_if_prompt_violation_detected_and_empty_contentChecks(HttpClient client, VertxTestContext context) {
             wiremock.stubFor(get("/endpoint").willReturn(aResponse().withStatus(200)));
