@@ -30,6 +30,7 @@ import io.vertx.core.eventbus.ReplyException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 
 @Slf4j
 @RequireResource
@@ -79,12 +80,10 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
             aiModelResource
                 .invokeModel(new PromptInput(prompt))
                 .flatMapCompletable(classifierResults -> {
-                    var detectedContentTypes = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
-                    if (
-                        !detectedContentTypes.isEmpty() &&
-                        (configuration.parseContentChecks().isEmpty() ||
-                            configuration.parseContentChecks().stream().anyMatch(detectedContentTypes::contains))
-                    ) {
+                    Set<String> allDetected = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
+                    var detectedContentTypes = configuration.parseContentChecks().isEmpty() ? allDetected : filteredWithConfig(allDetected);
+
+                    if (!detectedContentTypes.isEmpty()) {
                         logMetrics(detectedContentTypes, ctx, configuration.requestPolicy().getAction());
                         if (RequestPolicy.BLOCK_REQUEST.equals(configuration.requestPolicy())) {
                             return Completable.error(new BlockQueryException(detectedContentTypes));
@@ -102,6 +101,10 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                     }
                 )
         );
+    }
+
+    private @NonNull Set<String> filteredWithConfig(Set<String> allDetected) {
+        return allDetected.stream().filter(configuration.parseContentChecks()::contains).collect(Collectors.toSet());
     }
 
     private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {

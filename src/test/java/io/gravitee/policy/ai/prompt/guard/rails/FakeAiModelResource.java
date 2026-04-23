@@ -53,6 +53,10 @@ public class FakeAiModelResource
         if (promptInput.promptContent().contains("obscene") || promptInput.promptContent().contains("bullsh*t")) {
             result.add(new ClassifierResults.ClassifierResult("obscene", 0.2F, "token", 0, 1));
         }
+        if (promptInput.promptContent().contains("hello!")) {
+            result.add(new ClassifierResults.ClassifierResult("toxic", 0.9F, "token", 0, 1));
+            result.add(new ClassifierResults.ClassifierResult("obscene", 0.15F, "token", 0, 1));
+        }
 
         return Single.just(new ClassifierResults(result));
     }
