@@ -1,3 +1,10 @@
+## [3.2.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.1...3.2.2) (2026-04-23)
+
+
+### Bug Fixes
+
+* filter not applied to block reason, exposing labels in error response ([d3c6675](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/d3c667582c4ca7931f0bfc8030939335f4265994))
+
 ## [3.2.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.0...3.2.1) (2026-03-13)
 
 
