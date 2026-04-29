@@ -18,6 +18,7 @@ package io.gravitee.policy.ai.prompt.guard.rails;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
 import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
@@ -26,7 +27,6 @@ import io.gravitee.apim.gateway.tests.sdk.resource.ResourceBuilder;
 import io.gravitee.definition.model.ExecutionMode;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
-import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.resource.ai_model.TextClassificationAiModelResource;
 import io.gravitee.resource.ai_model.configuration.TextClassificationAiModelConfiguration;
@@ -419,15 +419,18 @@ class AiPromptGuardRailsPolicyIntegrationTest extends AbstractPolicyTest<AiPromp
             then(clientAsserts).subscribe(
                 tuple ->
                     context
-                        .verify(() -> {
-                            assertThat(tuple.statusCode()).isEqualTo(400);
-                            assertThat(tuple.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
-                            assertThat(tuple.metrics())
-                                .extracting(Metrics::getAdditionalMetrics)
-                                .asInstanceOf(InstanceOfAssertFactories.SET)
-                                .areExactly(1, keyword("keyword_action", "request-blocked"))
-                                .areExactly(1, keyword("keyword_content_violations", "toxic"));
-                        })
+                        .verify(() ->
+                            assertSoftly(soft -> {
+                                soft.assertThat(tuple.statusCode()).isEqualTo(400);
+                                soft.assertThat(tuple.responseBody()).hasToString("AI prompt validation detected. Reason: [toxic]");
+                                soft
+                                    .assertThat(tuple.metrics())
+                                    .extracting(Metrics::getAdditionalMetrics)
+                                    .asInstanceOf(InstanceOfAssertFactories.SET)
+                                    .areExactly(1, keyword("keyword_action", "request-blocked"))
+                                    .areExactly(1, keyword("keyword_content_violations", "toxic"));
+                            })
+                        )
                         .completeNow(),
                 context::failNow
             );

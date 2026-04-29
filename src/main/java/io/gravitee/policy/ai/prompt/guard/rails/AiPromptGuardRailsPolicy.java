@@ -17,6 +17,7 @@ package io.gravitee.policy.ai.prompt.guard.rails;
 
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.llm.LlmRequestInspector;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
@@ -26,14 +27,18 @@ import io.gravitee.resource.ai_model.api.model.PromptInput;
 import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
+import io.reactivex.rxjava3.core.Maybe;
 import io.vertx.core.eventbus.ReplyException;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 
 @Slf4j
 @RequireResource
 public class AiPromptGuardRailsPolicy implements HttpPolicy {
+
+    private static final String ATTR_LLM_INSPECTOR = "llm.inspector";
 
     private static final String UNEXPECTED_ERROR = "UNEXPECTED_ERROR";
     private static final String CONFIGURATION_ISSUE = "CONFIGURATION_ISSUE";
@@ -63,19 +68,27 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
     }
 
     private CompletableSource checkContent(HttpPlainExecutionContext ctx) {
-        var templateEngine = ctx.getTemplateEngine();
-
         var sensitivityThreshold = configuration.getSensitivityThreshold();
-        var promptContent = templateEngine.eval(configuration.promptLocation(), String.class).toSingle();
         var aiModelResource = modelResourceProvider.get(ctx);
+
+        LlmRequestInspector.PromptQuery promptQuery = configuration.getPromptQuery();
 
         if (aiModelResource == null) {
             return ctx.interruptWith(
                 new ExecutionFailure(500).key(CONFIGURATION_ISSUE).message("AI Model Text Classification resource incorrectly configured")
             );
         }
+        Maybe<String> prompt1;
+        LlmRequestInspector inspector = ctx.getAttribute(ATTR_LLM_INSPECTOR);
+        if (inspector != null) {
+            prompt1 = getPromptWithInspector(ctx, inspector, promptQuery);
+        } else if (promptQuery instanceof LlmRequestInspector.PromptQuery.CustomPrompt(String expression)) {
+            prompt1 = ctx.getTemplateEngine().eval(expression, String.class);
+        } else {
+            return ctx.interruptWith(new ExecutionFailure(500).key(CONFIGURATION_ISSUE).message("Impossible to inspect query"));
+        }
 
-        return promptContent.flatMapCompletable(prompt ->
+        return prompt1.flatMapCompletable(prompt ->
             aiModelResource
                 .invokeModel(new PromptInput(prompt))
                 .flatMapCompletable(classifierResults -> {
@@ -102,6 +115,17 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
                     }
                 )
         );
+    }
+
+    private static @NonNull Maybe<String> getPromptWithInspector(
+        HttpPlainExecutionContext ctx,
+        LlmRequestInspector inspector,
+        LlmRequestInspector.PromptQuery promptQuery
+    ) {
+        return ctx
+            .request()
+            .body()
+            .flatMap(body -> inspector.prompt(ctx, promptQuery, body));
     }
 
     private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {

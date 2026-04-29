@@ -17,10 +17,28 @@
                 "uiTypeProps": { "resourceType": "ai-model-text-classification" }
             }
         },
+        "promptPreset": {
+            "title": "Prompt preset",
+            "enum": ["ALL_PROMPTS", "CUSTOM_PROMPT"],
+            "default": "ALL_PROMPTS",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "ALL_PROMPTS": "All prompts (for LLM APIs)",
+                    "CUSTOM_PROMPT": "Custom prompt (for none LLM APIs)"
+                }
+            }
+        },
         "promptLocation": {
             "title": "Prompt Location",
             "description": "Prompt Location",
-            "type": "string"
+            "type": "string",
+            "gioConfig": {
+                "disableIf": {
+                    "$eq": {
+                        "value.promptPreset": ["LAST_USER_PROMPT", "ALL_USER_PROMPTS", "ALL_PROMPTS"]
+                    }
+                }
+            }
         },
         "contentChecks": {
             "title": "Content Checks",
