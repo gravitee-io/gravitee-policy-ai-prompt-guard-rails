@@ -15,14 +15,17 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails.configuration;
 
+import io.gravitee.gateway.reactive.api.context.llm.LlmRequestInspector;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.Arrays;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
+import org.springframework.util.StringUtils;
 
-@Slf4j
+@CustomLog
 public record AiPromptGuardRailsConfiguration(
     String resourceName,
+    PromptPreset promptPreset,
     String promptLocation,
     String contentChecks,
     Double sensitivityThreshold,
@@ -43,5 +46,19 @@ public record AiPromptGuardRailsConfiguration(
 
     public double getSensitivityThreshold() {
         return sensitivityThreshold != null ? sensitivityThreshold : DEFAULT_SENSITIVITY_THRESHOLD;
+    }
+
+    public LlmRequestInspector.PromptQuery getPromptQuery() {
+        // to keep the previous behavior
+        return StringUtils.hasText(promptLocation)
+            ? new LlmRequestInspector.PromptQuery.CustomPrompt(promptLocation)
+            : new LlmRequestInspector.PromptQuery.AllPrompts();
+    }
+
+    public enum PromptPreset {
+        LAST_USER_PROMPT,
+        ALL_USER_PROMPTS,
+        ALL_PROMPTS,
+        CUSTOM_PROMPT,
     }
 }
