@@ -31,13 +31,13 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>23.5.0</version>
+        <version>24.0.2</version>
     </parent>
 
     <properties>
         <!-- Gravitee dependencies version -->
-        <gravitee-apim.version>4.11.10</gravitee-apim.version>
-        <gravitee-inference-service.version>1.4.2</gravitee-inference-service.version>
+        <gravitee-apim.version>4.12.0-SNAPSHOT</gravitee-apim.version>
+        <gravitee-inference-service.version>2.0.0-alpha.2</gravitee-inference-service.version>
         <gravitee-resource-ai-model-api.version>2.2.3</gravitee-resource-ai-model-api.version>
 
         <!-- Tests -->
@@ -78,6 +78,11 @@
         <dependency>
             <groupId>io.gravitee.resource</groupId>
             <artifactId>gravitee-resource-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gravitee.node</groupId>
+            <artifactId>gravitee-node-logging</artifactId>
             <scope>provided</scope>
         </dependency>
 
