@@ -80,6 +80,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy {
             aiModelResource
                 .invokeModel(new PromptInput(prompt))
                 .flatMapCompletable(classifierResults -> {
+                    log.debug("Result of analyzing prompt: '{}': {}", prompt, classifierResults);
                     Set<String> allDetected = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
                     var detectedContentTypes = configuration.parseContentChecks().isEmpty() ? allDetected : filteredWithConfig(allDetected);
 
