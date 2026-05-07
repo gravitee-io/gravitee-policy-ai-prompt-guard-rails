@@ -1,3 +1,10 @@
+## [3.2.3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.2...3.2.3) (2026-05-07)
+
+
+### Bug Fixes
+
+* logs prompts analyzed and the result to help debug ([4d48250](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/4d482507a6bfadf3268326c9857cd2fbefd58d8f))
+
 ## [3.2.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.1...3.2.2) (2026-04-23)
 
 
