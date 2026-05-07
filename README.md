@@ -76,8 +76,9 @@ Strikethrough text indicates that a version is deprecated.
 
 | Plugin version| APIM| Java version |
 | --- | --- | ---  |
-|1.0.0|4.8.x and 4.9.x|21 |
-|2.0.0 and after|4.10.x and after|21 |
+|1.0.0|4.8.0 and 4.8.1|21 |
+|2.x|4.8.2+ and 4.9.x|21 |
+|3.x and after|4.10.x and after|21 |
 
 
 ## Configuration options
