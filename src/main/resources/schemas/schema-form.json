@@ -61,5 +61,5 @@
             "enum": ["BLOCK_REQUEST", "LOG_REQUEST"]
         }
     },
-    "required": ["promptLocation", "requestPolicy"]
+    "required": ["requestPolicy"]
 }

@@ -7,6 +7,13 @@ Depending on configuration, when a prompt is flagged:
 
 >**_NOTE_**: You may face an error when using this policy using the Gravitee's docker image. This is due to the fact that the default image are based on Alpine Linux, which does not support the ONNX Runtime. To resolve this issue you need to use the Gravitee's docker image based on Debian, which is available at `graviteeio/apim-gateway:4.8.0-debian`.
 
+## Prompt Location
+
+The policy locates the prompt to evaluate from the request based on the **Prompt preset** property:
+
+* **All prompts (`ALL_PROMPTS`)** – for LLM APIs, every prompt found in the request is inspected automatically. This is the default.
+* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`).
+
 ## Content Checks
 
 The Content Checks property specifies the classification labels that are applied to evaluate prompts. You should choose Labels in alignment with the selected model's capabilities and the intended filtering goals. For example, filtering for profanity while omitting toxicity checks.

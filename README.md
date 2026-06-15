@@ -17,6 +17,13 @@ Depending on configuration, when a prompt is flagged:
 
 >**_NOTE_**: You may face an error when using this policy using the Gravitee's docker image. This is due to the fact that the default image are based on Alpine Linux, which does not support the ONNX Runtime. To resolve this issue you need to use the Gravitee's docker image based on Debian, which is available at `graviteeio/apim-gateway:4.8.0-debian`.
 
+## Prompt Location
+
+The policy locates the prompt to evaluate from the request based on the **Prompt preset** property:
+
+* **All prompts (`ALL_PROMPTS`)** – for LLM APIs, every prompt found in the request is inspected automatically. This is the default.
+* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`).
+
 ## Content Checks
 
 The Content Checks property specifies the classification labels that are applied to evaluate prompts. You should choose Labels in alignment with the selected model's capabilities and the intended filtering goals. For example, filtering for profanity while omitting toxicity checks.
@@ -78,7 +85,8 @@ Strikethrough text indicates that a version is deprecated.
 | --- | --- | ---  |
 |1.0.0|4.8.0 and 4.8.1|21 |
 |2.x|4.8.2+ and 4.9.x|21 |
-|3.x and after|4.10.x and after|21 |
+|3.x|4.10.x and 4.11.x|21 |
+|4.x and after|4.12.x and after|21 |
 
 
 ## Configuration options
@@ -88,7 +96,8 @@ Strikethrough text indicates that a version is deprecated.
 | Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Default  | Description  |
 |:----------------------|:-----------------------|:----------:|:---------|:-------------|
 | Content Checks<br>`contentChecks`| string|  | | Comma-separated list of model labels (e.g., TOXIC,OBSCENE). Keep empty for all|
-| Prompt Location<br>`promptLocation`| string| ✅| | Prompt Location|
+| Prompt Location<br>`promptLocation`| string|  | | Prompt Location|
+| Prompt preset<br>`promptPreset`| string|  | `ALL_PROMPTS`| Values: `ALL_PROMPTS` `CUSTOM_PROMPT`|
 | Request Policy<br>`requestPolicy`| enum (string)| ✅| `LOG_REQUEST`| Request Policy<br>Values: `BLOCK_REQUEST` `LOG_REQUEST`|
 | Resource Name<br>`resourceName`| string|  | | The resource name loading the Text Classification model|
 | Sensitivity threshold<br>`sensitivityThreshold`| number<br>`[0.1, 1)`|  | `0.8`| |
