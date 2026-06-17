@@ -49,8 +49,12 @@ public record AiPromptGuardRailsConfiguration(
     }
 
     public LlmRequestInspector.PromptQuery getPromptQuery() {
-        // to keep the previous behavior
-        return StringUtils.hasText(promptLocation)
+        if (promptPreset == null) {
+            return StringUtils.hasText(promptLocation)
+                ? new LlmRequestInspector.PromptQuery.CustomPrompt(promptLocation)
+                : new LlmRequestInspector.PromptQuery.AllPrompts();
+        }
+        return promptPreset == PromptPreset.CUSTOM_PROMPT
             ? new LlmRequestInspector.PromptQuery.CustomPrompt(promptLocation)
             : new LlmRequestInspector.PromptQuery.AllPrompts();
     }
