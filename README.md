@@ -250,6 +250,18 @@ Strikethrough text indicates that a version is deprecated.
 
 ## Changelog
 
+### [4.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.3...4.0.0) (2026-06-17)
+
+
+* feat!: use new LLM inspector to find prompt ([fc60ded](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/fc60ded2f3c7e0633085bac4a6cab98291b22413))
+
+
+##### BREAKING CHANGES
+
+* need APIM 4.12
+
+https://gravitee.atlassian.net/browse/GMA-122
+
 #### [3.2.3](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.2...3.2.3) (2026-05-07)
 
 
