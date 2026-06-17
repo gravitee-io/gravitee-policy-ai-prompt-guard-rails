@@ -118,6 +118,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.gravitee.apim.definition</groupId>
+            <artifactId>gravitee-apim-definition-jackson</artifactId>
+            <version>${gravitee-apim.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.gravitee.resource</groupId>
             <artifactId>gravitee-resource-ai-model-text-classification</artifactId>
             <version>${gravitee-resource-ai-model-text-classification.version}</version>
