@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.0...4.0.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* clean pom.xml ([ab13c21](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/ab13c21461cc6e13e203579803889c12855c48dc))
+
 # [4.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/3.2.3...4.0.0) (2026-06-17)
 
 
