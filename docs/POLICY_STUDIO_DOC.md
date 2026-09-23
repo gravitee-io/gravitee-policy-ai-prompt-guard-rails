@@ -13,7 +13,7 @@ Depending on configuration, when a prompt is flagged:
 The policy locates the prompt to evaluate from the request based on the **Prompt preset** property:
 
 * **All prompts (`ALL_PROMPTS`)** – for LLM APIs, every prompt found in the request is inspected automatically. This is the default.
-* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`).
+* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`). On an LLM API the expression is ignored and every prompt of the conversation is inspected.
 
 ## Content Checks
 
