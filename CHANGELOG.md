@@ -1,3 +1,15 @@
+# [5.0.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.1...5.0.0) (2026-09-23)
+
+
+### Bug Fixes
+
+* Fix license file ([c666415](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/c666415744f0508229005631268f78a98587cdcc))
+
+
+### BREAKING CHANGES
+
+* the plugin now requires APIM 4.13 and Java 25
+
 ## [4.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.0...4.0.1) (2026-06-18)
 
 
