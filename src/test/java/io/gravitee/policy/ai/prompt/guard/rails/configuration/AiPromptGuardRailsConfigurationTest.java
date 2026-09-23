@@ -17,8 +17,10 @@ package io.gravitee.policy.ai.prompt.guard.rails.configuration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.gravitee.definition.jackson.datatype.GraviteeMapper;
-import io.gravitee.gateway.reactive.api.context.llm.LlmRequestInspector;
+import io.gravitee.gateway.reactive.api.context.llm.LlmPartCriteria;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import lombok.SneakyThrows;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
@@ -35,6 +37,11 @@ import org.junit.jupiter.params.provider.EnumSource;
 class AiPromptGuardRailsConfigurationTest {
 
     private static final GraviteeMapper MAPPER = new GraviteeMapper();
+
+    /** Every preset but {@code CUSTOM_PROMPT} inspects the whole conversation, tool definitions excluded. */
+    private static final List<LlmPartCriteria> ALL_CONVERSATION = List.of(
+        new LlmPartCriteria(Set.of(LlmPartCriteria.Kind.PROMPT), null, null)
+    );
 
     @Test
     void should_deserialize_a_full_configuration_without_promptPreset(SoftAssertions softly) {
@@ -53,7 +60,8 @@ class AiPromptGuardRailsConfigurationTest {
         softly
             .assertThat(configuration)
             .has(resourceName("my-classifier"))
-            .has(promptQuery(new LlmRequestInspector.PromptQuery.CustomPrompt("$.messages")))
+            .has(customPrompt(true))
+            .has(promptCriteria(ALL_CONVERSATION))
             .has(contentChecks("TOXIC,OBSCENE"))
             .has(sensitivityThreshold(0.8))
             .has(requestPolicy(RequestPolicy.BLOCK_REQUEST));
@@ -77,7 +85,8 @@ class AiPromptGuardRailsConfigurationTest {
         softly
             .assertThat(configuration)
             .has(resourceName("my-classifier"))
-            .has(promptQuery(new LlmRequestInspector.PromptQuery.AllPrompts()))
+            .has(customPrompt(false))
+            .has(promptCriteria(ALL_CONVERSATION))
             .has(contentChecks("TOXIC,OBSCENE"))
             .has(sensitivityThreshold(0.8))
             .has(requestPolicy(RequestPolicy.BLOCK_REQUEST));
@@ -101,7 +110,8 @@ class AiPromptGuardRailsConfigurationTest {
         softly
             .assertThat(configuration)
             .has(resourceName("my-classifier"))
-            .has(promptQuery(new LlmRequestInspector.PromptQuery.CustomPrompt("$.messages")))
+            .has(customPrompt(true))
+            .has(promptCriteria(ALL_CONVERSATION))
             .has(contentChecks("TOXIC,OBSCENE"))
             .has(sensitivityThreshold(0.8))
             .has(requestPolicy(RequestPolicy.BLOCK_REQUEST));
@@ -120,7 +130,8 @@ class AiPromptGuardRailsConfigurationTest {
         softly
             .assertThat(configuration)
             .has(resourceName(null))
-            .has(promptQuery(new LlmRequestInspector.PromptQuery.AllPrompts()))
+            .has(customPrompt(false))
+            .has(promptCriteria(ALL_CONVERSATION))
             .has(contentChecks(null))
             .has(sensitivityThreshold(null))
             .has(requestPolicy(RequestPolicy.LOG_REQUEST));
@@ -149,8 +160,12 @@ class AiPromptGuardRailsConfigurationTest {
         return new Condition<>(c -> Objects.equals(c.resourceName(), expected), "resourceName = %s", expected);
     }
 
-    private static Condition<AiPromptGuardRailsConfiguration> promptQuery(LlmRequestInspector.PromptQuery expected) {
-        return new Condition<>(c -> Objects.equals(c.getPromptQuery(), expected), "promptQuery = %s", expected);
+    private static Condition<AiPromptGuardRailsConfiguration> customPrompt(boolean expected) {
+        return new Condition<>(c -> c.isCustomPrompt() == expected, "customPrompt = %s", expected);
+    }
+
+    private static Condition<AiPromptGuardRailsConfiguration> promptCriteria(List<LlmPartCriteria> expected) {
+        return new Condition<>(c -> Objects.equals(c.promptCriteria(), expected), "promptCriteria = %s", expected);
     }
 
     private static Condition<AiPromptGuardRailsConfiguration> contentChecks(String expected) {

@@ -15,10 +15,11 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails.configuration;
 
-import io.gravitee.gateway.reactive.api.context.llm.LlmRequestInspector;
+import io.gravitee.gateway.reactive.api.context.llm.LlmPartCriteria;
 import io.gravitee.policy.api.PolicyConfiguration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import lombok.CustomLog;
 import org.springframework.util.StringUtils;
 
@@ -32,6 +33,16 @@ public record AiPromptGuardRailsConfiguration(
     RequestPolicy requestPolicy
 ) implements PolicyConfiguration {
     private static final double DEFAULT_SENSITIVITY_THRESHOLD = 0.5;
+
+    /**
+     * What is inspected on an llm api: every message of the conversation, tool definitions excluded.
+     * <p>
+     * Held as a constant rather than rebuilt per request, as {@link LlmPartCriteria} asks: a criterion that
+     * cannot select anything is rejected at construction, which is only useful if it fires at deployment time.
+     */
+    private static final List<LlmPartCriteria> ALL_CONVERSATION = List.of(
+        new LlmPartCriteria(Set.of(LlmPartCriteria.Kind.PROMPT), null, null)
+    );
 
     public List<String> parseContentChecks() {
         if (contentChecks == null || contentChecks.trim().isEmpty()) {
@@ -48,15 +59,24 @@ public record AiPromptGuardRailsConfiguration(
         return sensitivityThreshold != null ? sensitivityThreshold : DEFAULT_SENSITIVITY_THRESHOLD;
     }
 
-    public LlmRequestInspector.PromptQuery getPromptQuery() {
+    /**
+     * Whether the prompt is read from the location expression rather than from the conversation the gateway
+     * normalized. That is the only way in on a plain http api, which carries no conversation at all.
+     */
+    public boolean isCustomPrompt() {
         if (promptPreset == null) {
-            return StringUtils.hasText(promptLocation)
-                ? new LlmRequestInspector.PromptQuery.CustomPrompt(promptLocation)
-                : new LlmRequestInspector.PromptQuery.AllPrompts();
+            return StringUtils.hasText(promptLocation);
         }
-        return promptPreset == PromptPreset.CUSTOM_PROMPT
-            ? new LlmRequestInspector.PromptQuery.CustomPrompt(promptLocation)
-            : new LlmRequestInspector.PromptQuery.AllPrompts();
+        return promptPreset == PromptPreset.CUSTOM_PROMPT;
+    }
+
+    /**
+     * The parts of an llm request this policy inspects. Every preset but {@link PromptPreset#CUSTOM_PROMPT}
+     * inspects the whole conversation: {@link PromptPreset#LAST_USER_PROMPT} and
+     * {@link PromptPreset#ALL_USER_PROMPTS} are legacy values the configuration schema no longer offers.
+     */
+    public List<LlmPartCriteria> promptCriteria() {
+        return ALL_CONVERSATION;
     }
 
     public enum PromptPreset {
