@@ -22,7 +22,7 @@ Depending on configuration, when a prompt is flagged:
 The policy locates the prompt to evaluate from the request based on the **Prompt preset** property:
 
 * **All prompts (`ALL_PROMPTS`)** – for LLM APIs, every prompt found in the request is inspected automatically. This is the default.
-* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`).
+* **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`). On an LLM API the expression is ignored and every prompt of the conversation is inspected.
 
 ## Content Checks
 
@@ -86,7 +86,8 @@ Strikethrough text indicates that a version is deprecated.
 |1.0.0|4.8.0 and 4.8.1|21 |
 |2.x|4.8.2+ and 4.9.x|21 |
 |3.x|4.10.x and 4.11.x|21 |
-|4.x and after|4.12.x and after|21 |
+|4.x|4.12.x|21 |
+|5.x and after|4.13.x and after|25 |
 
 
 ## Configuration options
