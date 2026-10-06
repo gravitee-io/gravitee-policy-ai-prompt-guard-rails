@@ -1,3 +1,10 @@
+## [4.0.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.1...4.0.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** bump gravitee-apim to 4.12.21 ([9d7b367](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/9d7b3672be57668293ad83b5adba2f3cacfe2807))
+
 ## [4.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.0...4.0.1) (2026-06-18)
 
 
