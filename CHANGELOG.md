@@ -1,3 +1,10 @@
+# [5.1.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/5.0.1...5.1.0) (2026-10-13)
+
+
+### Features
+
+* bump APIM to released version ([5f19584](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/5f195844c01db659c92ef240c3dfc18135e3e87a))
+
 ## [5.0.1](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/5.0.0...5.0.1) (2026-10-06)
 
 
