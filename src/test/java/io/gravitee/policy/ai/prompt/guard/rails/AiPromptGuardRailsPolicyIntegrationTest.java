@@ -17,6 +17,7 @@ package io.gravitee.policy.ai.prompt.guard.rails;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.keyword;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
