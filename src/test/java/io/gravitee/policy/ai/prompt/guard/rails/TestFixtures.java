@@ -15,8 +15,10 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.assertj.core.api.Condition;
 
 final class TestFixtures {
 
@@ -37,5 +39,17 @@ final class TestFixtures {
      */
     static String codePoints(String text, int start, int end) {
         return text.substring(text.offsetByCodePoints(0, start), text.offsetByCodePoints(0, end));
+    }
+
+    static Condition<Object> keyword(String expectedKey, String expectedValue) {
+        return new Condition<>(
+            metric ->
+                metric instanceof AdditionalMetric.KeywordMetric(String key, String value) &&
+                expectedKey.equals(key) &&
+                expectedValue.equals(value),
+            "keyword additional metric with key %s and value %s",
+            expectedKey,
+            expectedValue
+        );
     }
 }

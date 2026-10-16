@@ -22,14 +22,22 @@ import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.eventbus.ReplyFailure;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 
+/**
+ * A classifier shaped like the real one in sequence mode: every inference reports a score for every label of the
+ * model, low unless the label is triggered by what the prompt holds.
+ */
 public class FakeAiModelResource
     extends AiTextModelResource<
         FakeAiModelResourceConfiguration,
         io.gravitee.inference.api.classifier.ClassifierResults,
         io.gravitee.resource.ai_model.api.result.ClassifierResults
     > {
+
+    private static final List<String> LABELS = List.of("toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate");
+    private static final float LOW_SCORE = 0.01F;
 
     @Override
     public void doStart() {}
@@ -39,26 +47,35 @@ public class FakeAiModelResource
 
     @Override
     public Single<ClassifierResults> invokeModel(PromptInput promptInput) {
-        if (promptInput.promptContent().contains("not ready")) {
+        var content = promptInput.promptContent();
+        if (content.contains("not ready")) {
             return Single.error(new ReplyException(ReplyFailure.ERROR, 503, "Model is not ready"));
         }
 
-        var result = new ArrayList<ClassifierResults.ClassifierResult>();
-        if (promptInput.promptContent().contains("toxic") || promptInput.promptContent().contains("bullsh*t")) {
-            result.add(new ClassifierResults.ClassifierResult("toxic", 0.9F, "token", 0, 1));
+        var scores = new LinkedHashMap<String, Float>();
+        LABELS.forEach(label -> scores.put(label, LOW_SCORE));
+        if (content.contains("toxic") || content.contains("bullsh*t") || content.contains("hello!")) {
+            scores.merge("toxic", 0.9F, Math::max);
         }
-        if (promptInput.promptContent().contains("identity_hate")) {
-            result.add(new ClassifierResults.ClassifierResult("identity_hate", 0.8F, "token", 0, 1));
+        if (content.contains("identity_hate")) {
+            scores.merge("identity_hate", 0.8F, Math::max);
         }
-        if (promptInput.promptContent().contains("obscene") || promptInput.promptContent().contains("bullsh*t")) {
-            result.add(new ClassifierResults.ClassifierResult("obscene", 0.2F, "token", 0, 1));
+        if (content.contains("obscene") || content.contains("bullsh*t")) {
+            scores.merge("obscene", 0.2F, Math::max);
         }
-        if (promptInput.promptContent().contains("hello!")) {
-            result.add(new ClassifierResults.ClassifierResult("toxic", 0.9F, "token", 0, 1));
-            result.add(new ClassifierResults.ClassifierResult("obscene", 0.15F, "token", 0, 1));
+        if (content.contains("hello!")) {
+            scores.merge("obscene", 0.15F, Math::max);
         }
 
-        return Single.just(new ClassifierResults(result));
+        return Single.just(
+            new ClassifierResults(
+                scores
+                    .entrySet()
+                    .stream()
+                    .map(score -> new ClassifierResults.ClassifierResult(score.getKey(), score.getValue(), null, null, null))
+                    .toList()
+            )
+        );
     }
 
     @Override
