@@ -15,12 +15,23 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.resource.ai_model.api.result.ClassifierResults;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import org.assertj.core.api.Condition;
 
 final class TestFixtures {
+
+    /**
+     * The labels of a toxicity classification model.
+     */
+    static final List<String> TOXICITY_LABELS = List.of("toxic", "severe_toxic", "obscene", "threat", "insult", "identity_hate");
 
     private TestFixtures() {}
 
@@ -42,6 +53,13 @@ final class TestFixtures {
     }
 
     /**
+     * The number of windows the given texts are cut into.
+     */
+    static long windowCount(String... texts) {
+        return Stream.of(texts).flatMap(PromptWindows::of).count();
+    }
+
+    /**
      * The results of an inference reporting the given score for each label.
      */
     static ClassifierResults results(Map<String, Float> scoreByLabel) {
@@ -51,6 +69,32 @@ final class TestFixtures {
                 .stream()
                 .map(score -> new ClassifierResults.ClassifierResult(score.getKey(), score.getValue(), null, null, null))
                 .toList()
+        );
+    }
+
+    static Condition<Object> keyword(String expectedKey, String expectedValue) {
+        return new Condition<>(
+            metric ->
+                metric instanceof AdditionalMetric.KeywordMetric(String key, String value) &&
+                expectedKey.equals(key) &&
+                expectedValue.equals(value),
+            "keyword additional metric with key %s and value %s",
+            expectedKey,
+            expectedValue
+        );
+    }
+
+    /**
+     * The content violations metric, holding the given labels in any order.
+     */
+    static Condition<Object> violations(String... expectedLabels) {
+        return new Condition<>(
+            metric ->
+                metric instanceof AdditionalMetric.KeywordMetric(String key, String value) &&
+                "keyword_content_violations".equals(key) &&
+                Set.of(value.split(",")).equals(Set.of(expectedLabels)),
+            "content violations %s, in any order",
+            Arrays.toString(expectedLabels)
         );
     }
 }

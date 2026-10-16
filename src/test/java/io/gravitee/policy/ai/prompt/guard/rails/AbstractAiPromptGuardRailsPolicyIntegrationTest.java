@@ -27,7 +27,6 @@ import io.gravitee.plugin.entrypoint.EntrypointConnectorPlugin;
 import io.gravitee.plugin.entrypoint.http.proxy.HttpProxyEntrypointConnectorFactory;
 import io.gravitee.plugin.resource.ResourcePlugin;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
-import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -39,7 +38,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.api.Condition;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,18 +103,6 @@ class AbstractAiPromptGuardRailsPolicyIntegrationTest
             .toFlowable()
             .reduce(Buffer.buffer(), Buffer::appendBuffer)
             .map(responseBody -> new Result(response, responseBody));
-    }
-
-    protected Condition<Object> keyword(String expectedKey, String expectedValue) {
-        return new Condition<>(
-            e ->
-                e instanceof AdditionalMetric.KeywordMetric(String key, String value) &&
-                expectedKey.equals(key) &&
-                expectedValue.equals(value),
-            "keyword additionnal metric with key %s and value %s",
-            expectedKey,
-            expectedValue
-        );
     }
 
     record Result(Metrics metrics, Integer statusCode, Buffer responseBody) {
