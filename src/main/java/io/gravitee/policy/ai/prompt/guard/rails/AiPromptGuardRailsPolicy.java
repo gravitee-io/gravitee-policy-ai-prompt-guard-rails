@@ -22,20 +22,19 @@ import io.gravitee.gateway.reactive.api.context.llm.LlmExecutionContext;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.gateway.reactive.api.policy.llm.LlmPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
-import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.policy.api.annotations.RequireResource;
+import io.gravitee.resource.ai_model.api.AiTextModelResource;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
 import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
+import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
 import io.vertx.core.eventbus.ReplyException;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.CustomLog;
-import org.jspecify.annotations.NonNull;
 
 /**
  * <h2>Two exchanges, one policy</h2>
@@ -49,12 +48,11 @@ import org.jspecify.annotations.NonNull;
 @RequireResource
 public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
 
-    private static final String PROMPT_SEPARATOR = "\n\n";
-
     private static final String UNEXPECTED_ERROR = "UNEXPECTED_ERROR";
     private static final String CONFIGURATION_ISSUE = "CONFIGURATION_ISSUE";
     private final AiPromptGuardRailsConfiguration configuration;
     private final AiModelResourceProvider modelResourceProvider;
+    private final Verdict verdict;
 
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration) {
         this(configuration, new AiModelResourceProvider(configuration));
@@ -63,6 +61,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration, AiModelResourceProvider modelResourceProvider) {
         this.configuration = configuration;
         this.modelResourceProvider = modelResourceProvider;
+        this.verdict = Verdict.of(configuration);
     }
 
     @Override
@@ -80,7 +79,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
             .bodyOrEmpty()
             .flatMapCompletable(body ->
                 configuration.isCustomPrompt()
-                    ? checkContent(ctx, ctx.getTemplateEngine().eval(configuration.promptLocation(), String.class))
+                    ? checkContent(ctx, ctx.getTemplateEngine().eval(configuration.promptLocation(), String.class).toFlowable())
                     : ctx.interruptWith(new ExecutionFailure(500).key(CONFIGURATION_ISSUE).message("Impossible to inspect query"))
             );
     }
@@ -98,26 +97,35 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
         return Completable.defer(() -> checkContent(ctx, prompts(ctx)));
     }
 
-    private Maybe<String> prompts(LlmExecutionContext ctx) {
-        return Maybe.fromCallable(() -> textOf(ctx.request().llmParts(configuration.promptCriteria()))).filter(text -> !text.isEmpty());
+    /**
+     * The texts of the conversation, in the order they are inspected: from its last message back to its first one,
+     * the end of a conversation being where an instruction is the most likely to be found.
+     */
+    private Flowable<String> prompts(LlmExecutionContext ctx) {
+        return Flowable.fromIterable(textsOf(ctx.request().llmParts(configuration.promptCriteria())).reversed());
     }
 
     /**
-     * All the text the selected parts carry, in the order the model will receive it.
+     * The text of each selected part, in the order the model will receive them.
+     * <p>
+     * Kept apart rather than joined: a classifier only reads the first tokens of its input, so one long part
+     * would hide the ones that follow it.
      * <p>
      * Text only: an inline image or an audio attachment is transmitted to the model but is not represented
      * here, so a verdict based on this value is a verdict on a partial view of the request.
      */
-    static String textOf(List<LlmContextPart> parts) {
+    static List<String> textsOf(List<LlmContextPart> parts) {
         return parts
             .stream()
             .map(LlmContextPart::textContent)
             .filter(text -> !text.isBlank())
-            .collect(Collectors.joining(PROMPT_SEPARATOR));
+            .toList();
     }
 
-    private CompletableSource checkContent(HttpPlainExecutionContext ctx, Maybe<String> promptToInspect) {
-        var sensitivityThreshold = configuration.getSensitivityThreshold();
+    /**
+     * Inspects the given texts, in the order they are given. No text, no inference: the request goes on.
+     */
+    private CompletableSource checkContent(HttpPlainExecutionContext ctx, Flowable<String> textsToInspect) {
         var aiModelResource = modelResourceProvider.get(ctx);
 
         if (aiModelResource == null) {
@@ -126,36 +134,54 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
             );
         }
 
-        return promptToInspect.flatMapCompletable(prompt ->
-            aiModelResource
-                .invokeModel(new PromptInput(prompt))
-                .flatMapCompletable(classifierResults -> {
-                    ctx.withLogger(log).debug("Result of analyzing prompt: '{}': {}", prompt, classifierResults);
-                    Set<String> allDetected = detectClassifierResultContentTypes(classifierResults, sensitivityThreshold);
-                    var detectedContentTypes = configuration.parseContentChecks().isEmpty() ? allDetected : filteredWithConfig(allDetected);
-
-                    if (!detectedContentTypes.isEmpty()) {
-                        logMetrics(detectedContentTypes, ctx, configuration.requestPolicy().getAction());
-                        if (RequestPolicy.BLOCK_REQUEST.equals(configuration.requestPolicy())) {
-                            return Completable.error(new BlockQueryException(detectedContentTypes));
-                        }
-                    }
-                    return Completable.complete();
-                })
-                .onErrorResumeNext(throwable ->
-                    switch (throwable) {
-                        case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()));
-                        case ReplyException replyException -> ctx.interruptWith(adaptReplyException(replyException));
-                        default -> ctx.interruptWith(
-                            new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR)
-                        );
-                    }
-                )
-        );
+        return detectContentTypes(ctx, aiModelResource, textsToInspect)
+            .flatMapCompletable(detectedContentTypes -> {
+                logMetrics(detectedContentTypes, ctx, verdict.requestPolicy().getAction());
+                return switch (verdict.requestPolicy()) {
+                    case BLOCK_REQUEST -> Completable.error(new BlockQueryException(detectedContentTypes));
+                    case LOG_REQUEST -> Completable.complete();
+                };
+            })
+            .onErrorResumeNext(throwable ->
+                switch (throwable) {
+                    case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()));
+                    case ReplyException replyException -> ctx.interruptWith(adaptReplyException(replyException));
+                    default -> ctx.interruptWith(
+                        new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR)
+                    );
+                }
+            );
     }
 
-    private @NonNull Set<String> filteredWithConfig(Set<String> allDetected) {
-        return allDetected.stream().filter(configuration.parseContentChecks()::contains).collect(Collectors.toSet());
+    /**
+     * The content types detected in the texts, if any.
+     * <p>
+     * Each text is classified window by window, from its start to its end (see {@link PromptWindows}), and the
+     * score of a label is the highest one seen so far. The windows are classified one after the other, never
+     * concurrently, so that a request does not send a burst of inferences to a model shared by the whole gateway.
+     * Their number grows with the length of the texts and is not capped: a long conversation occupies the model,
+     * and delays its own request, for as many inferences as it has windows. The inspection stops as soon as the
+     * verdict cannot change anymore (see {@link Verdict#isConclusive()}).
+     */
+    private Maybe<Set<String>> detectContentTypes(
+        HttpPlainExecutionContext ctx,
+        AiTextModelResource<?, ?, ClassifierResults> aiModelResource,
+        Flowable<String> texts
+    ) {
+        return texts
+            .concatMapStream(PromptWindows::of)
+            .concatMapSingle(window ->
+                aiModelResource
+                    .invokeModel(new PromptInput(window))
+                    .doOnSuccess(classifierResults ->
+                        ctx.withLogger(log).debug("Result of analyzing prompt: '{}': {}", window, classifierResults)
+                    )
+            )
+            .scan(verdict, Verdict::merge)
+            .takeUntil(Verdict::isConclusive)
+            .lastElement()
+            .map(Verdict::detected)
+            .filter(detectedContentTypes -> !detectedContentTypes.isEmpty());
     }
 
     private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {
@@ -163,15 +189,6 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
             .metrics()
             .putAdditionalKeywordMetric("keyword_content_violations", String.join(",", detectedCategories))
             .putAdditionalKeywordMetric("keyword_action", action);
-    }
-
-    private Set<String> detectClassifierResultContentTypes(ClassifierResults classifierResults, Double sensitivityThreshold) {
-        return classifierResults
-            .results()
-            .stream()
-            .filter(classifierResult -> classifierResult.score() > sensitivityThreshold)
-            .map(ClassifierResults.ClassifierResult::label)
-            .collect(Collectors.toSet());
     }
 
     private ExecutionFailure adaptReplyException(ReplyException replyException) {
