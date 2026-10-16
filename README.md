@@ -24,6 +24,17 @@ The policy locates the prompt to evaluate from the request based on the **Prompt
 * **All prompts (`ALL_PROMPTS`)** – for LLM APIs, every prompt found in the request is inspected automatically. This is the default.
 * **Custom prompt (`CUSTOM_PROMPT`)** – for non-LLM APIs, the prompt is extracted from the location provided in the **Prompt Location** expression (e.g. `{#request.jsonContent.prompt}`).
 
+## Inspection
+
+A text classification model only reads the first tokens of its input (512 for the usual models) and ignores the rest. To inspect a whole request:
+
+* **Each text is classified on its own** – the texts extracted from a request (the messages of a conversation, or their content parts, depending on the API format) are never joined, so a long text cannot hide the ones that follow it. Blank texts are skipped.
+* **Long texts are classified in windows** – a text longer than 500 characters (Unicode code points) is cut into windows of 500 characters, overlapping by at least 50 characters so that a word straddling two windows is whole in one of them. A window of 500 characters is assumed to fit the 512 tokens of the model, which holds for the usual BERT-like models but not necessarily for a model whose tokenizer splits a single emoji or CJK character into several tokens.
+* **Order** – the texts are inspected from the last one to the first one, the windows of a text from its start to its end.
+* **Stop** – with `BLOCK_REQUEST`, the request is blocked as soon as a content check is detected. With `LOG_REQUEST`, the inspection stops once every configured content check is detected; without any content check, every window is inspected.
+
+The windows are classified one after the other, never concurrently, so that a request does not send a burst of inferences to the model, which is shared by every API of the gateway. Their number grows with the length of the request and is not capped: each window adds the latency of one inference to the request, and long conversations take as many inferences as they have windows.
+
 ## Content Checks
 
 The Content Checks property specifies the classification labels that are applied to evaluate prompts. You should choose Labels in alignment with the selected model's capabilities and the intended filtering goals. For example, filtering for profanity while omitting toxicity checks.
