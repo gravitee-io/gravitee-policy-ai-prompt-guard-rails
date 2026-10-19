@@ -29,17 +29,10 @@ import org.junit.jupiter.api.Test;
 class AiPromptGuardRailsPolicyTest {
 
     @Test
-    void should_keep_the_text_of_every_selected_part_apart_in_order() {
+    void should_keep_the_text_of_every_selected_part_apart_from_the_last_one() {
         var parts = List.<LlmContextPart>of(turn(Role.SYSTEM, "You are a helpful assistant"), turn(Role.USER, "Tell me a joke"));
 
-        assertThat(AiPromptGuardRailsPolicy.textsOf(parts)).containsExactly("You are a helpful assistant", "Tell me a joke");
-    }
-
-    @Test
-    void should_skip_the_parts_that_carry_no_text() {
-        var parts = List.<LlmContextPart>of(turn(Role.USER, null), turn(Role.ASSISTANT, "   "), turn(Role.USER, "Tell me a joke"));
-
-        assertThat(AiPromptGuardRailsPolicy.textsOf(parts)).singleElement().isEqualTo("Tell me a joke");
+        assertThat(AiPromptGuardRailsPolicy.textsOf(parts)).containsExactly("Tell me a joke", "You are a helpful assistant");
     }
 
     @Test

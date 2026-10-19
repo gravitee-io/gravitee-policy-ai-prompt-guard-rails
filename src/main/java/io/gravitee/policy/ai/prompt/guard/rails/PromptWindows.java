@@ -41,7 +41,7 @@ final class PromptWindows {
     private PromptWindows() {}
 
     /**
-     * The windows of a text, from its start to its end, cut lazily: a window is only built when it is consumed.
+     * The windows of a text, from its start to its end. The text of a window is only built when it is consumed.
      * <p>
      * A text of at most {@value #WINDOW_SIZE} code points is a single window. A longer one is cut into windows of
      * exactly {@value #WINDOW_SIZE} code points, the first one at its start and the last one at its end, spread
@@ -55,9 +55,9 @@ final class PromptWindows {
         var codePoints = text.codePoints().toArray();
         int length = codePoints.length;
         int count = Math.ceilDiv(length - WINDOW_OVERLAP, WINDOW_SIZE - WINDOW_OVERLAP);
-        int step = Math.ceilDiv(length - WINDOW_SIZE, count - 1);
+        long lastStart = length - WINDOW_SIZE;
         return IntStream.range(0, count)
-            .map(index -> index < count - 1 ? index * step : length - WINDOW_SIZE)
+            .map(index -> Math.toIntExact(Math.ceilDiv(index * lastStart, count - 1)))
             .mapToObj(start -> new String(codePoints, start, WINDOW_SIZE));
     }
 }

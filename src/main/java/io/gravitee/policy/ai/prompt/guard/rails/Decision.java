@@ -15,11 +15,24 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
-import java.util.Collection;
+import java.util.Set;
 
-public class BlockQueryException extends Exception {
+/**
+ * What is done with a request once its classifications are read against the rules of the policy.
+ */
+sealed interface Decision {
+    /**
+     * Nothing is detected: the request goes on.
+     */
+    record Pass() implements Decision {}
 
-    public BlockQueryException(Collection<String> detectedContentTypes) {
-        super(String.format("AI prompt validation detected. Reason: %s", detectedContentTypes));
-    }
+    /**
+     * The detected labels are logged and the request goes on.
+     */
+    record Log(Set<String> detected) implements Decision {}
+
+    /**
+     * The detected labels are logged and the request is blocked.
+     */
+    record Block(Set<String> detected) implements Decision {}
 }
