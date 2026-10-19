@@ -15,8 +15,11 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.context;
 import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.distinctCodePoints;
 import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.keyword;
+import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.policy;
+import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.windowCount;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
@@ -25,7 +28,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
-import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.llm.LlmContextPart;
 import io.gravitee.gateway.reactive.api.context.llm.LlmExecutionContext;
 import io.gravitee.gateway.reactive.api.context.llm.LlmRequest;
@@ -34,16 +36,14 @@ import io.gravitee.gateway.reactive.api.context.llm.Turn;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration.PromptPreset;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
-import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
 import io.gravitee.reporter.api.v4.metric.Metrics;
-import io.gravitee.resource.ai_model.api.AiTextModelResource;
-import io.gravitee.resource.ai_model.api.result.ClassifierResults;
-import io.reactivex.rxjava3.core.Completable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -160,6 +160,53 @@ class AiPromptGuardRailsPolicyConversationTest {
         }
 
         @Test
+        void should_classify_the_windows_one_after_the_other() {
+            classifier = new TruncatingClassifier(Duration.ofMillis(5));
+
+            inspect(RequestPolicy.BLOCK_REQUEST, null, turn(Role.SYSTEM, LONG_SYSTEM_PROMPT), turn(Role.USER, "Tell me a joke"));
+
+            assertSoftly(softly -> {
+                softly.assertThat(classifier.inputs).as("inferences").hasSize(1 + windowCount(LONG_SYSTEM_PROMPT));
+                softly.assertThat(classifier.maxInFlight()).as("inferences running at the same time, at most").isEqualTo(1);
+            });
+        }
+
+        @Test
+        void should_skip_the_messages_that_carry_no_text() {
+            inspect(RequestPolicy.BLOCK_REQUEST, null, turn(Role.SYSTEM, "Be nice"), turn(Role.ASSISTANT, "   "), turn(Role.USER, ""));
+
+            assertSoftly(softly -> {
+                softly.assertThat(classifier.inputs).as("inferences").containsExactly("Be nice");
+                softly.assertThat(interruptions).as("interruptions").isEmpty();
+            });
+        }
+
+        @Test
+        void should_inspect_the_whole_conversation_whatever_the_custom_prompt_location() {
+            inspect(
+                new AiPromptGuardRailsConfiguration(
+                    "ai-model-text-classification-resource",
+                    PromptPreset.CUSTOM_PROMPT,
+                    "{#request.jsonContent.prompt}",
+                    null,
+                    null,
+                    RequestPolicy.BLOCK_REQUEST
+                ),
+                turn(Role.SYSTEM, LONG_SYSTEM_PROMPT),
+                turn(Role.USER, "You are toxic")
+            );
+
+            assertSoftly(softly -> {
+                softly.assertThat(classifier.inputs).as("inferences").singleElement().isEqualTo("You are toxic");
+                softly
+                    .assertThat(interruptions)
+                    .as("interruptions (status code, message)")
+                    .extracting(ExecutionFailure::statusCode, ExecutionFailure::message)
+                    .containsExactly(tuple(400, "AI prompt validation detected. Reason: [toxic]"));
+            });
+        }
+
+        @Test
         void should_let_a_friendly_conversation_through() {
             inspect(RequestPolicy.BLOCK_REQUEST, null, turn(Role.SYSTEM, "Be nice"), turn(Role.USER, "Tell me a joke"));
 
@@ -238,7 +285,7 @@ class AiPromptGuardRailsPolicyConversationTest {
                 softly
                     .assertThat(classifier.inputs)
                     .as("inferences")
-                    .hasSize(15)
+                    .hasSize(2 + windowCount(LONG_SYSTEM_PROMPT))
                     .startsWith("Why did the chicken cross the road?", "Tell me a joke");
                 softly.assertThat(interruptions).as("interruptions").isEmpty();
                 softly.assertThat(metrics.getAdditionalMetrics()).as("additional metrics").isEmpty();
@@ -274,7 +321,11 @@ class AiPromptGuardRailsPolicyConversationTest {
             inspect(RequestPolicy.LOG_REQUEST, "toxic,obscene", turn(Role.SYSTEM, LONG_SYSTEM_PROMPT), turn(Role.USER, "You are toxic"));
 
             assertSoftly(softly -> {
-                softly.assertThat(classifier.inputs).as("inferences").hasSize(14).startsWith("You are toxic");
+                softly
+                    .assertThat(classifier.inputs)
+                    .as("inferences")
+                    .hasSize(1 + windowCount(LONG_SYSTEM_PROMPT))
+                    .startsWith("You are toxic");
                 softly.assertThat(interruptions).as("interruptions").isEmpty();
                 softly
                     .assertThat(metrics.getAdditionalMetrics())
@@ -286,40 +337,26 @@ class AiPromptGuardRailsPolicyConversationTest {
     }
 
     private void inspect(RequestPolicy requestPolicy, String contentChecks, LlmContextPart... conversation) {
-        var configuration = new AiPromptGuardRailsConfiguration(
-            "ai-model-text-classification-resource",
-            PromptPreset.ALL_PROMPTS,
-            null,
-            contentChecks,
-            null,
-            requestPolicy
+        inspect(
+            new AiPromptGuardRailsConfiguration(
+                "ai-model-text-classification-resource",
+                PromptPreset.ALL_PROMPTS,
+                null,
+                contentChecks,
+                null,
+                requestPolicy
+            ),
+            conversation
         );
-        var policy = new AiPromptGuardRailsPolicy(
-            configuration,
-            new AiModelResourceProvider(configuration) {
-                @Override
-                public AiTextModelResource<?, ?, ClassifierResults> get(HttpPlainExecutionContext ctx) {
-                    return classifier;
-                }
-            }
-        );
-
-        policy.onRequest(context(List.of(conversation))).test().assertComplete();
     }
 
-    private LlmExecutionContext context(List<LlmContextPart> conversation) {
+    private void inspect(AiPromptGuardRailsConfiguration configuration, LlmContextPart... conversation) {
         var request = mock(LlmRequest.class);
-        when(request.llmParts(any())).thenReturn(conversation);
-
-        var ctx = mock(LlmExecutionContext.class);
+        when(request.llmParts(any())).thenReturn(List.of(conversation));
+        var ctx = context(LlmExecutionContext.class, metrics, interruptions);
         when(ctx.request()).thenReturn(request);
-        when(ctx.metrics()).thenReturn(metrics);
-        when(ctx.withLogger(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(ctx.interruptWith(any(ExecutionFailure.class))).thenAnswer(invocation -> {
-            interruptions.add(invocation.getArgument(0));
-            return Completable.complete();
-        });
-        return ctx;
+
+        policy(configuration, classifier).onRequest(ctx).test().awaitDone(5, TimeUnit.SECONDS).assertComplete();
     }
 
     private static Turn turn(Role role, String content) {

@@ -15,7 +15,21 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
+import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.reporter.api.v4.metric.AdditionalMetric;
+import io.gravitee.reporter.api.v4.metric.Metrics;
+import io.gravitee.resource.ai_model.api.AiTextModelResource;
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
+import io.reactivex.rxjava3.core.Completable;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Condition;
@@ -39,6 +53,59 @@ final class TestFixtures {
      */
     static String codePoints(String text, int start, int end) {
         return text.substring(text.offsetByCodePoints(0, start), text.offsetByCodePoints(0, end));
+    }
+
+    /**
+     * The number of inferences a text takes, one per window.
+     */
+    static int windowCount(String text) {
+        return Math.toIntExact(PromptWindows.of(text).count());
+    }
+
+    /**
+     * The results of an inference scoring each label as given.
+     */
+    static ClassifierResults classifierResults(Map<String, Float> scoreByLabel) {
+        return new ClassifierResults(
+            scoreByLabel
+                .entrySet()
+                .stream()
+                .map(score -> new ClassifierResults.ClassifierResult(score.getKey(), score.getValue(), null, null, null))
+                .toList()
+        );
+    }
+
+    /**
+     * A policy classifying with {@code classifier} rather than with the resource of the api.
+     */
+    static AiPromptGuardRailsPolicy policy(
+        AiPromptGuardRailsConfiguration configuration,
+        AiTextModelResource<?, ?, ClassifierResults> classifier
+    ) {
+        return new AiPromptGuardRailsPolicy(
+            configuration,
+            new AiModelResourceProvider(configuration) {
+                @Override
+                public AiTextModelResource<?, ?, ClassifierResults> get(HttpPlainExecutionContext ctx) {
+                    return classifier;
+                }
+            }
+        );
+    }
+
+    /**
+     * A mocked context recording the metrics of the request into {@code metrics} and its interruptions into
+     * {@code interruptions}.
+     */
+    static <C extends HttpPlainExecutionContext> C context(Class<C> type, Metrics metrics, List<ExecutionFailure> interruptions) {
+        var ctx = mock(type);
+        when(ctx.metrics()).thenReturn(metrics);
+        when(ctx.withLogger(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ctx.interruptWith(any(ExecutionFailure.class))).thenAnswer(invocation -> {
+            interruptions.add(invocation.getArgument(0));
+            return Completable.complete();
+        });
+        return ctx;
     }
 
     static Condition<Object> keyword(String expectedKey, String expectedValue) {

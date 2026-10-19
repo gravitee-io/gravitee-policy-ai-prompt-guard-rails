@@ -15,6 +15,8 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import static io.gravitee.policy.ai.prompt.guard.rails.TestFixtures.classifierResults;
+
 import io.gravitee.resource.ai_model.api.AiTextModelResource;
 import io.gravitee.resource.ai_model.api.InferenceServiceClient;
 import io.gravitee.resource.ai_model.api.model.PromptInput;
@@ -67,15 +69,7 @@ public class FakeAiModelResource
             scores.merge("obscene", 0.15F, Math::max);
         }
 
-        return Single.just(
-            new ClassifierResults(
-                scores
-                    .entrySet()
-                    .stream()
-                    .map(score -> new ClassifierResults.ClassifierResult(score.getKey(), score.getValue(), null, null, null))
-                    .toList()
-            )
-        );
+        return Single.just(classifierResults(scores));
     }
 
     @Override
