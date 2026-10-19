@@ -15,6 +15,8 @@
  */
 package io.gravitee.policy.ai.prompt.guard.rails;
 
+import io.gravitee.resource.ai_model.api.result.ClassifierResults;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -37,5 +39,18 @@ final class TestFixtures {
      */
     static String codePoints(String text, int start, int end) {
         return text.substring(text.offsetByCodePoints(0, start), text.offsetByCodePoints(0, end));
+    }
+
+    /**
+     * The results of an inference reporting the given score for each label.
+     */
+    static ClassifierResults results(Map<String, Float> scoreByLabel) {
+        return new ClassifierResults(
+            scoreByLabel
+                .entrySet()
+                .stream()
+                .map(score -> new ClassifierResults.ClassifierResult(score.getKey(), score.getValue(), null, null, null))
+                .toList()
+        );
     }
 }
