@@ -22,6 +22,7 @@ import io.gravitee.gateway.reactive.api.context.llm.LlmExecutionContext;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.gateway.reactive.api.policy.llm.LlmPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.configuration.AiPromptGuardRailsConfiguration;
+import io.gravitee.policy.ai.prompt.guard.rails.configuration.RequestPolicy;
 import io.gravitee.policy.ai.prompt.guard.rails.model.AiModelResourceProvider;
 import io.gravitee.policy.api.annotations.RequireResource;
 import io.gravitee.resource.ai_model.api.AiTextModelResource;
@@ -30,8 +31,10 @@ import io.gravitee.resource.ai_model.api.result.ClassifierResults;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.CompletableSource;
 import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.eventbus.ReplyException;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.CustomLog;
@@ -52,7 +55,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
     private static final String CONFIGURATION_ISSUE = "CONFIGURATION_ISSUE";
     private final AiPromptGuardRailsConfiguration configuration;
     private final AiModelResourceProvider modelResourceProvider;
-    private final Verdict verdict;
+    private final DetectionRules rules;
 
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration) {
         this(configuration, new AiModelResourceProvider(configuration));
@@ -61,7 +64,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
     public AiPromptGuardRailsPolicy(AiPromptGuardRailsConfiguration configuration, AiModelResourceProvider modelResourceProvider) {
         this.configuration = configuration;
         this.modelResourceProvider = modelResourceProvider;
-        this.verdict = Verdict.of(configuration);
+        this.rules = DetectionRules.of(configuration);
     }
 
     @Override
@@ -94,19 +97,14 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
      */
     @Override
     public Completable onRequest(LlmExecutionContext ctx) {
-        return Completable.defer(() -> checkContent(ctx, prompts(ctx)));
+        return Completable.defer(() ->
+            checkContent(ctx, Flowable.fromIterable(textsOf(ctx.request().llmParts(configuration.promptCriteria()))))
+        );
     }
 
     /**
-     * The texts of the conversation, in the order they are inspected: from its last message back to its first one,
+     * The text of each selected part, in the order they are inspected: from the last part back to the first one,
      * the end of a conversation being where an instruction is the most likely to be found.
-     */
-    private Flowable<String> prompts(LlmExecutionContext ctx) {
-        return Flowable.fromIterable(textsOf(ctx.request().llmParts(configuration.promptCriteria())).reversed());
-    }
-
-    /**
-     * The text of each selected part, in the order the model will receive them.
      * <p>
      * Kept apart rather than joined: a classifier only reads the first tokens of its input, so one long part
      * would hide the ones that follow it.
@@ -115,11 +113,7 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
      * here, so a verdict based on this value is a verdict on a partial view of the request.
      */
     static List<String> textsOf(List<LlmContextPart> parts) {
-        return parts
-            .stream()
-            .map(LlmContextPart::textContent)
-            .filter(text -> !text.isBlank())
-            .toList();
+        return parts.stream().map(LlmContextPart::textContent).toList().reversed();
     }
 
     /**
@@ -134,41 +128,25 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
             );
         }
 
-        return detectContentTypes(ctx, aiModelResource, textsToInspect)
-            .flatMapCompletable(detectedContentTypes -> {
-                logMetrics(detectedContentTypes, ctx, verdict.requestPolicy().getAction());
-                return switch (verdict.requestPolicy()) {
-                    case BLOCK_REQUEST -> Completable.error(new BlockQueryException(detectedContentTypes));
-                    case LOG_REQUEST -> Completable.complete();
-                };
-            })
-            .onErrorResumeNext(throwable ->
-                switch (throwable) {
-                    case BlockQueryException e -> ctx.interruptWith(new ExecutionFailure(400).message(e.getMessage()));
-                    case ReplyException replyException -> ctx.interruptWith(adaptReplyException(replyException));
-                    default -> ctx.interruptWith(
-                        new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR)
-                    );
-                }
-            );
+        return decide(ctx, aiModelResource, textsToInspect)
+            .map(decision -> enforce(ctx, decision))
+            .onErrorReturn(throwable -> ctx.interruptWith(failureOf(throwable)))
+            .flatMapCompletable(enforcement -> enforcement);
     }
 
     /**
-     * The content types detected in the texts, if any.
-     * <p>
-     * Each text is classified window by window, from its start to its end (see {@link PromptWindows}), and the
-     * score of a label is the highest one seen so far. The windows are classified one after the other, never
-     * concurrently, so that a request does not send a burst of inferences to a model shared by the whole gateway.
-     * Their number grows with the length of the texts and is not capped: a long conversation occupies the model,
-     * and delays its own request, for as many inferences as it has windows. The inspection stops as soon as the
-     * verdict cannot change anymore (see {@link Verdict#isConclusive()}).
+     * The decision on the given texts. Each non-blank text is classified window by window (see
+     * {@link PromptWindows}), one inference after the other so that a request never sends a burst of inferences to
+     * a model shared by the whole gateway, until the decision cannot change anymore (see
+     * {@link DetectionRules#isConclusive(Set)}).
      */
-    private Maybe<Set<String>> detectContentTypes(
+    private Single<Decision> decide(
         HttpPlainExecutionContext ctx,
         AiTextModelResource<?, ?, ClassifierResults> aiModelResource,
         Flowable<String> texts
     ) {
         return texts
+            .filter(text -> !text.isBlank())
             .concatMapStream(PromptWindows::of)
             .concatMapSingle(window ->
                 aiModelResource
@@ -177,21 +155,50 @@ public class AiPromptGuardRailsPolicy implements HttpPolicy, LlmPolicy {
                         ctx.withLogger(log).debug("Result of analyzing prompt: '{}': {}", window, classifierResults)
                     )
             )
-            .scan(verdict, Verdict::merge)
-            .takeUntil(Verdict::isConclusive)
-            .lastElement()
-            .map(Verdict::detected)
-            .filter(detectedContentTypes -> !detectedContentTypes.isEmpty());
+            .map(rules::detectedIn)
+            .scan(Set.<String>of(), AiPromptGuardRailsPolicy::union)
+            .takeUntil(rules::isConclusive)
+            .last(Set.of())
+            .map(rules::decide);
     }
 
-    private void logMetrics(Set<String> detectedCategories, HttpPlainExecutionContext ctx, String action) {
+    private Completable enforce(HttpPlainExecutionContext ctx, Decision decision) {
+        return switch (decision) {
+            case Decision.Pass() -> Completable.complete();
+            case Decision.Log(var detected) -> {
+                logMetrics(ctx, detected, RequestPolicy.LOG_REQUEST);
+                yield Completable.complete();
+            }
+            case Decision.Block(var detected) -> {
+                logMetrics(ctx, detected, RequestPolicy.BLOCK_REQUEST);
+                yield ctx.interruptWith(new ExecutionFailure(400).message("AI prompt validation detected. Reason: %s".formatted(detected)));
+            }
+        };
+    }
+
+    private static ExecutionFailure failureOf(Throwable throwable) {
+        return switch (throwable) {
+            case ReplyException replyException -> new ExecutionFailure(replyException.failureCode())
+                .message(replyException.getMessage())
+                .cause(replyException);
+            default -> new ExecutionFailure(500).message("Unexpected error occurred").cause(throwable).key(UNEXPECTED_ERROR);
+        };
+    }
+
+    /**
+     * The labels detected so far followed by the newly detected ones, so that the labels are reported in the order
+     * they are detected.
+     */
+    private static Set<String> union(Set<String> detected, Set<String> newlyDetected) {
+        var union = new LinkedHashSet<>(detected);
+        union.addAll(newlyDetected);
+        return Collections.unmodifiableSequencedSet(union);
+    }
+
+    private void logMetrics(HttpPlainExecutionContext ctx, Set<String> detectedCategories, RequestPolicy requestPolicy) {
         ctx
             .metrics()
             .putAdditionalKeywordMetric("keyword_content_violations", String.join(",", detectedCategories))
-            .putAdditionalKeywordMetric("keyword_action", action);
-    }
-
-    private ExecutionFailure adaptReplyException(ReplyException replyException) {
-        return new ExecutionFailure(replyException.failureCode()).message(replyException.getMessage()).cause(replyException);
+            .putAdditionalKeywordMetric("keyword_action", requestPolicy.getAction());
     }
 }
