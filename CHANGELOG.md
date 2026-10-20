@@ -1,3 +1,16 @@
+# [4.1.0](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.2...4.1.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* classify each prompt in sliding windows instead of one truncated text ([3d96c57](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/3d96c57c78ebef145327b260059536962a14b891))
+
+
+### Features
+
+* add up the classifications of a request into a verdict ([9ae27ee](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/9ae27ee948d242a2c56782ed0e9c00a73005aa0b))
+* cut a prompt into windows a classifier reads entirely ([453ab69](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/commit/453ab69e905c43feab72c22fa7c5ad2074fcfccc))
+
 ## [4.0.2](https://github.com/gravitee-io/gravitee-policy-ai-prompt-guard-rails/compare/4.0.1...4.0.2) (2026-10-06)
 
 
