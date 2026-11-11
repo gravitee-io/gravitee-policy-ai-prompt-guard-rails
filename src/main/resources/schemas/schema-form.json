@@ -9,12 +9,12 @@
             "x-schema-form": {
                 "event": {
                     "name": "fetch-resources",
-                    "regexTypes": "^ai-model-text-classification"
+                    "regexTypes": "^(ai-model-text-classification|singularitee-model)$"
                 }
             },
             "gioConfig": {
                 "uiType": "resource-type",
-                "uiTypeProps": { "resourceType": "ai-model-text-classification" }
+                "uiTypeProps": { "resourceType": ["ai-model-text-classification", "singularitee-model"] }
             }
         },
         "promptPreset": {
